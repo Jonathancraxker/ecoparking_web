@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Si la URL solicitada no es un archivo que existe...
+  RewriteCond %{REQUEST_FILENAME} !-f
+  # Y si la URL solicitada no es una carpeta que existe...
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Redirige la solicitud a tu index.html para que React se encargue.
+  RewriteRule . /index.html [L]
+</IfModule>
