@@ -4,7 +4,7 @@ import Registro from './pages/Registro';
 import Codigo_qr from './pages/Codigo_qr';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
-import Crud_Usuarios from './pages/CRUD_usuarios';
+import Crud_Usuarios from './pages/Crud_Usuarios';
 import Not_Found from './pages/Not_Found';
 import Crud_Citas from './pages/Crud_Citas';
 import Mis_Citas from './pages/Mis_Citas';
