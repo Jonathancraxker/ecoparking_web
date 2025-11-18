@@ -9,6 +9,7 @@ import Not_Found from './pages/Not_Found';
 import Crud_Citas from './pages/Crud_Citas';
 import Mis_Citas from './pages/Mis_Citas';
 import Admin_Route from './components/Admin_Route';
+import Reportes from './pages/Reportes';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
       <Route element={<Admin_Route />}>
         <Route path="/crud_citas" element={<Crud_Citas />} />
         <Route path="/crud_usuarios" element={<Crud_Usuarios />} />
+        <Route path="/reportes" element={<Reportes />} />
       </Route>
       {/* RUTA 404 */}
         <Route path="*" element={<Not_Found />} />

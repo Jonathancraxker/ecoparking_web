@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import useAxiosPrivate from '../hooks/useAxiosPrivate.js'; 
 import { Modal, Button, Form, Table } from "react-bootstrap";
 import Swal from "sweetalert2";
-import { QRCodeCanvas } from 'qrcode.react'; // <-- 1. IMPORTAR LIBRERÍA DE QR
+import { QRCodeCanvas } from 'qrcode.react'; // <-- 1. LIBRERÍA DE QR
 
 // Estado inicial para el formulario de Cita (Crear/Editar)
 const initialCitaForm = {
@@ -329,7 +329,7 @@ function Crud_Citas() {
                     
                     <h5>Invitados Actuales ({invitadosList.length})</h5>
                     <Table striped bordered hover size="sm">
-                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Acciones</th></tr></thead>
+                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Eliminar</th></tr></thead>
                         <tbody>
                             {invitadosList.map(inv => (
                                 <tr key={inv.id}>
@@ -337,7 +337,7 @@ function Crud_Citas() {
                                     <td>{inv.correo}</td>
                                     <td>{inv.empresa}</td>
                                     <td>{inv.tipo_visitante}</td>
-                                    <td>
+                                    <td className="text-center">
                                         <Button variant="danger" size="sm" onClick={() => handleDeleteInvitado(inv.id)}>X</Button>
                                     </td>
                                 </tr>
