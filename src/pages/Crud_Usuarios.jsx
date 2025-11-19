@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-// CORRECCIÓN: Usamos .js porque es lógica pura
 import useAxiosPrivate from '../hooks/useAxiosPrivate.js'; 
-// CORRECCIÓN: Usamos .jsx porque es un componente con JSX
 import { useAuth } from '../context/AuthContext.jsx'; 
 import { Modal, Button, Form, Table } from "react-bootstrap";
 import Swal from "sweetalert2";
 
-// Estado inicial para el formulario de Usuario
 const initialFormData = {
     nombre: "",
     correo: "",
@@ -15,7 +12,8 @@ const initialFormData = {
     codigo: "",
     tipo_usuario: "Administrativo", // Valor por defecto
     telefono: "",
-    division: ""
+    division: "",
+    intentos: "0"
 };
 
 function Crud_Usuarios() {
@@ -68,7 +66,8 @@ function Crud_Usuarios() {
                 codigo: user.codigo || "",
                 tipo_usuario: user.tipo_usuario || "Profesor",
                 telefono: user.telefono || "",
-                division: user.division || ""
+                division: user.division || "",
+                intentos: user.intentos || "0"
             });
         } else {
             setFormData(initialFormData);
@@ -165,8 +164,8 @@ function Crud_Usuarios() {
         <div className="container-fluid p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Gestión de Usuarios</h2>
-                <Button variant="primary" onClick={() => handleShowModal(null)}>
-                    + Agregar Usuario
+                <Button variant="primary" onClick={() => handleShowModal(null)} className="d-flex align-items-center gap-2">
+                    <i className="bi bi-plus-circle"></i>Agregar usuario
                 </Button>
             </div>
 
@@ -176,31 +175,35 @@ function Crud_Usuarios() {
                 <table className="table table-striped table-hover shadow-sm">
                     <thead className="table-dark">
                         <tr>
-                            <th scope="col">ID</th>
-                            <th scope="col">Nombre</th>
+                            <th className="text-center" scope="col">ID</th>
+                            <th className="text-center" scope="col">Nombre</th>
                             <th scope="col">Correo</th>
-                            <th scope="col">Código</th>
-                            <th scope="col">Tipo</th>
-                            <th scope="col">Acciones</th>
+                            <th className="text-center" scope="col">Código</th>
+                            <th className="text-center" scope="col">Tipo</th>
+                            <th className="text-center" scope="col">Intentos</th>
+                            <th className="text-center" scope="col">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {usuarios.map((usuario) => (
                             <tr key={usuario.id}>
-                                <th>{usuario.id}</th>
-                                <td>{usuario.nombre}</td>
+                                <th className="text-center">{usuario.id}</th>
+                                <td className="text-center">{usuario.nombre}</td>
                                 <td>{usuario.correo}</td>
-                                <td>{usuario.codigo}</td>
-                                <td>{usuario.tipo_usuario}</td>
-                                <td>
-                                    <Button variant="warning" size="sm" className="me-2" onClick={() => handleShowModal(usuario)} title="Editar">
-                                        Editar
+                                <td className="text-center">{usuario.codigo}</td>
+                                <td className="text-center">{usuario.tipo_usuario}</td>
+                                <td className={`text-center ${usuario.intentos >= 5 ? 'text-danger fw-bold' : ''}`}>
+                                    {usuario.intentos}
+                                </td>
+                                <td className="text-center">
+                                    <Button onClick={() => handleShowModal(usuario)} className="btn btn-warning btn-sm me-2" title="Editar">
+                                        <i className="bi bi-pencil-fill m-1"></i> 
                                     </Button>
-                                    <Button variant="danger" size="sm" onClick={() => handleShowDeleteModal(usuario)} title="Eliminar">
-                                        Eliminar
+                                    <Button onClick={() => handleShowDeleteModal(usuario)} className="btn btn-danger btn-sm align-items-center gap-1" title="Eliminar">
+                                        <i className="bi bi-trash-fill m-1"></i>
                                     </Button>
-                                    <Button variant="secondary" size="sm" className="ms-2" onClick={() => handleShowPasswordModal(usuario)} title="Cambiar Contraseña">
-                                        Contraseña
+                                    <Button variant="secondary" size="sm" onClick={() => handleShowPasswordModal(usuario)} className="ms-2 btn btn-secondary btn-sm align-items-center gap-1" title="Cambiar Contraseña">
+                                        <i className="bi bi-key-fill m-1"></i>
                                     </Button>
                                 </td>
                             </tr>
@@ -269,6 +272,19 @@ function Crud_Usuarios() {
                                         <option value="Administrativo">Administrativo</option>
                                         <option value="Profesor">Profesor</option>
                                         <option value="Juca">Juca</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </div>
+                            <div className="col-md-4">
+                                <Form.Group>
+                                    <Form.Label>Intentos - Incio de sesión</Form.Label>
+                                    <Form.Select name="intentos" value={formData.intentos} onChange={handleFormChange}>
+                                        <option value="0">0</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
                                     </Form.Select>
                                 </Form.Group>
                             </div>

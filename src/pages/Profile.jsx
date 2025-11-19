@@ -96,8 +96,8 @@ function Profile() {
             Swal.fire("Error", "Las contraseñas no coinciden.", "error");
             return;
         }
-        if (passwordData.contrasena.length < 3) {
-            Swal.fire("Error", "La contraseña debe tener al menos 3 caracteres.", "error");
+        if (passwordData.contrasena.length < 6) {
+            Swal.fire("Error", "La contraseña debe tener al menos 6 caracteres.", "error");
             return;
         }
 
@@ -135,7 +135,8 @@ function Profile() {
                         <li className="list-group-item"><strong>Código:</strong> {profileData.codigo}</li>
                     </ul>
                     <div className="mt-3">
-                        <Button variant="primary" onClick={handleShowEdit}>
+                        <Button variant="primary" onClick={handleShowEdit} className="btn btn-primary btn-sm me-2">
+                            <i className="bi bi-pencil-fill m-1"></i> 
                             Editar Perfil
                         </Button>
                     </div>
@@ -146,23 +147,27 @@ function Profile() {
             
             <div className="mt-2 d-flex flex-wrap gap-2">
                 <button onClick={logout} className="btn btn-danger">
-                    Cerrar Sesión
+                    <i className="bi bi-box-arrow-right me-1"></i>Cerrar Sesión
                 </button>
-                
+
                 <Link to="/codigo" className="btn btn-secondary">
-                    Validador QR
+                    <i className="bi bi-qr-code-scan me-1"></i>Validador QR
                 </Link>
+
                 <Link to="/crud_usuarios" className="btn btn-success">
-                    Gestionar Usuarios
+                    <i className="bi bi-people-fill me-1"></i>Gestionar Usuarios
                 </Link>
+
                 <Link to="/crud_citas" className="btn btn-success">
-                    Gestionar Citas (Juca)
+                    <i className="bi bi-calendar-range-fill me-1"></i>Gestionar Citas (Juca)
                 </Link>
+
                 <Link to="/mis_citas" className="btn btn-warning">
-                    Gestionar Mis Citas
+                    <i className="bi bi-calendar-event-fill me-1"></i>Gestionar Mis Citas
                 </Link>
+
                 <Link to="/Reportes" className="btn btn-primary">
-                    Reportes
+                    <i className="bi bi-clipboard-data me-1"></i>Reportes
                 </Link>
             </div>
 
@@ -192,7 +197,7 @@ function Profile() {
                         
                         <div className="mt-3">
                             <Button variant="link" onClick={handleShowPassword}>
-                                ¿Quieres cambiar tu contraseña?
+                                ¿Deseas cambiar tu contraseña?
                             </Button>
                         </div>
                     </Modal.Body>
@@ -218,8 +223,10 @@ function Profile() {
                                 value={passwordData.contrasena} 
                                 onChange={handlePasswordChange} 
                                 required 
-                                placeholder="Mínimo 3 caracteres"
-                                minLength="3"
+                                placeholder="Mínimo 6 caracteres"
+                                minLength="6"
+                                pattern=".*[^A-Za-z0-9].*"
+                                title="La contraseña debe tener al menos 6 caracteres y un carácter especial (ej. !@#$%)."
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
@@ -229,7 +236,11 @@ function Profile() {
                                 name="confirmarContrasena" 
                                 value={passwordData.confirmarContrasena} 
                                 onChange={handlePasswordChange} 
-                                required 
+                                required
+                                placeholder="Mínimo 6 caracteres"
+                                minLength="6"
+                                pattern=".*[^A-Za-z0-9].*"
+                                title="La contraseña debe tener al menos 6 caracteres y un carácter especial (ej. !@#$%)."
                             />
                         </Form.Group>
                     </Modal.Body>

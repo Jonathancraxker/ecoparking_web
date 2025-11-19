@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-// CORRECCIÓN: Cambiado a .jsx para que coincida con tus otros archivos
 import useAxiosPrivate from '../hooks/useAxiosPrivate.js'; 
 import { Modal, Button, Form, Table } from "react-bootstrap";
 import Swal from "sweetalert2";
@@ -15,7 +14,7 @@ const initialCitaForm = {
     motivo: "",
     estado_cita: "Confirmada",
     numero_invitados: 0,
-    invitados: [] // <-- Se enviará vacío al crear
+    invitados: []
 };
 
 // Estado inicial para el formulario de Invitado
@@ -27,7 +26,7 @@ const initialInvitadoForm = {
     id_cita: null
 };
 
-function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
+function Mis_Citas() {
     const [citas, setCitas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -46,26 +45,26 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
     const [formDataInvitado, setFormDataInvitado] = useState(initialInvitadoForm);
     const [selectedQrUrl, setSelectedQrUrl] = useState(''); 
 
-    // --- Cargar SÓLO MIS citas (ruta de Usuario) ---
-    const fetchMisCitas = async () => { // <-- CAMBIO DE NOMBRE
+    // --- NUEVO: Estado para saber qué invitado estamos editando ---
+    const [currentInvitado, setCurrentInvitado] = useState(null);
+
+    // --- Cargar SÓLO MIS citas ---
+    const fetchMisCitas = async () => {
         setLoading(true);
         try {
-            // --- ¡¡ESTE ES EL CAMBIO PRINCIPAL!! ---
             const response = await axiosPrivate.get('/citas/mis-citas'); 
-            // Asignamos la 'url_validacion' que el backend ya construyó
             setCitas(response.data);
             setError(null);
         } catch (err) {
             console.error("Error al obtener mis citas:", err);
             setError("Error al cargar mis citas.");
-            // (Ya no necesitamos el chequeo de Admin 403)
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchMisCitas(); // <-- CAMBIO DE NOMBRE
+        fetchMisCitas();
     }, [axiosPrivate]);
 
 
@@ -79,7 +78,7 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
                 hora_inicio: cita.hora_inicio || "",
                 hora_fin: cita.hora_fin || "",
                 motivo: cita.motivo || "",
-                estado_cita: cita.estado_cita || "",
+                estado_cita: cita.estado_cita || "Confirmada",
                 numero_invitados: cita.numero_invitados || 0
             });
         } else {
@@ -96,17 +95,15 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
         e.preventDefault();
         try {
             if (currentCita) {
-                // (PATCH /citas/:id)
                 const { invitados, ...dataToUpdate } = formDataCita;
                 await axiosPrivate.patch(`/citas/${currentCita.id}`, dataToUpdate);
                 Swal.fire("¡Éxito!", "Cita actualizada.", "success");
             } else {
-                // (POST /citas/)
                 await axiosPrivate.post(`/citas`, formDataCita);
                 Swal.fire("¡Éxito!", "Cita registrada.", "success");
             }
             setShowCitaModal(false);
-            fetchMisCitas(); // Recargar la tabla
+            fetchMisCitas(); 
         } catch (err) {
             Swal.fire("Error", `Hubo un error al guardar la cita.`, "error");
         }
@@ -120,11 +117,10 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
 
     const handleDeleteCita = async () => {
          try {
-            // (DELETE /citas/:id)
             await axiosPrivate.delete(`/citas/${currentCita.id}`);
             Swal.fire("¡Eliminada!", "La cita ha sido eliminada.", "success");
             setShowDeleteModal(false);
-            fetchMisCitas(); // Recargar la tabla
+            fetchMisCitas(); 
         } catch (err) {
             Swal.fire("Error", `Hubo un error al eliminar la cita.`, "error");
         }
@@ -134,7 +130,9 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
     const handleShowInvitadoModal = async (cita) => {
         setCurrentCita(cita);
         setShowInvitadoModal(true);
+        // Reseteamos form y modo edición
         setFormDataInvitado({ ...initialInvitadoForm, id_cita: cita.id }); 
+        setCurrentInvitado(null);
         await fetchInvitados(cita.id); 
     };
     
@@ -151,26 +149,88 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
         setFormDataInvitado({ ...formDataInvitado, [e.target.name]: e.target.value });
     };
 
+    // --- NUEVO: Preparar formulario para editar invitado ---
+    const handleEditInvitado = (invitado) => {
+        setCurrentInvitado(invitado); 
+        setFormDataInvitado({
+            nombre: invitado.nombre,
+            correo: invitado.correo,
+            empresa: invitado.empresa || "",
+            tipo_visitante: invitado.tipo_visitante || "",
+            id_cita: currentCita.id
+        });
+    };
+
+    // --- NUEVO: Cancelar edición ---
+    const handleCancelEditInvitado = () => {
+        setCurrentInvitado(null);
+        setFormDataInvitado({ ...initialInvitadoForm, id_cita: currentCita.id });
+    };
+
     const handleInvitadoSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axiosPrivate.post('/invitados', formDataInvitado);
-            Swal.fire("¡Éxito!", "Invitado agregado.", "success");
+            if (currentInvitado) {
+                // --- MODO EDICIÓN (PATCH) ---
+                await axiosPrivate.patch(`/invitados/${currentInvitado.id}`, formDataInvitado);
+                Swal.fire("¡Éxito!", "Invitado actualizado.", "success");
+            } else {
+                // --- MODO CREACIÓN (POST) ---
+                await axiosPrivate.post('/invitados', formDataInvitado);
+                Swal.fire("¡Éxito!", "Invitado agregado.", "success");
+            }
+            
+            // Resetear
             setFormDataInvitado({ ...initialInvitadoForm, id_cita: currentCita.id });
+            setCurrentInvitado(null);
             fetchInvitados(currentCita.id); 
-            fetchMisCitas(); // Recargar tabla principal
+            fetchMisCitas(); 
         } catch (err) {
-            Swal.fire("Error", `No se pudo agregar al invitado.`, "error");
+            Swal.fire("Error", `Hubo un error al guardar el invitado.`, "error");
         }
     };
 
     const handleDeleteInvitado = async (invitadoId) => {
-        if (!window.confirm("¿Seguro que quieres eliminar este invitado?")) return;
+        // --- CAMBIO AQUÍ: Usamos Swal en lugar de window.confirm ---
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: "Se eliminará este invitado permanentemente.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        // Si el usuario presiona "Cancelar", detenemos la función
+        if (!result.isConfirmed) return;
+
         try {
             await axiosPrivate.delete(`/invitados/${invitadoId}`);
-            Swal.fire("¡Eliminado!", "Invitado eliminado.", "success");
+            
+            // Mensaje de éxito (Toast pequeño en la esquina)
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'success',
+                title: 'Invitado eliminado correctamente'
+            });
+
+            // Si estábamos editando el invitado que borramos, cancelar edición
+            if (currentInvitado && currentInvitado.id === invitadoId) {
+                handleCancelEditInvitado();
+            }
+            
+            // Recargar datos
             fetchInvitados(currentCita.id); 
-            fetchMisCitas(); // Recargar tabla principal
+            fetchMisCitas(); 
+
         } catch (err) {
             Swal.fire("Error", `No se pudo eliminar al invitado.`, "error");
         }
@@ -181,20 +241,19 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
             setSelectedQrUrl(cita.url_validacion);
             setShowQrModal(true);
         } else {
-            Swal.fire("Error", "Esta cita no tiene un código QR asociado.", "error");
+            Swal.fire("Error", "Esta cita no tiene un código QR asociado (url_validacion no encontrada).", "error");
         }
     };
-    // --- FIN DE LÓGICA IDÉNTICA ---
 
     if (loading) return <div className="container p-4">Cargando mis citas...</div>;
 
     return (
         <div className="container-fluid p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-                {/* --- CAMBIO DE TÍTULO --- */}
                 <h2>Mis Citas (Usuario loggeado)</h2>
-                <Button variant="primary" onClick={() => handleShowCitaModal(null)}>
-                    + Registrar Nueva Cita
+                <Button variant="primary" onClick={() => handleShowCitaModal(null)} className="d-flex align-items-center gap-2">
+                    <i className="bi bi-plus-circle"></i>
+                    Registrar Cita
                 </Button> 
             </div>
 
@@ -204,50 +263,50 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
                 <table className="table table-striped table-hover shadow-sm">
                     <thead className="table-dark">
                         <tr>
-                            <th>ID</th>
+                            <th className="text-center">ID</th>
                             <th>Motivo</th>
-                            {/* No necesitamos la columna 'Usuario (ID)' aquí */}
-                            <th>Fechas</th>
-                            <th>Horas</th>
-                            <th>Invitados</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th className="text-center">Invitados</th>
+                            <th className="text-center">Estado</th>
+                            <th className="text-center">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {citas.map((cita) => (
                             <tr key={cita.id}>
-                                <th>{cita.id}</th>
+                                <th className="text-center">{cita.id}</th>
                                 <td>{cita.motivo}</td>
-                                {/* Columna 'id_usuario' quitada */}
                                 <td>{cita.fecha_inicio} al {cita.fecha_fin}</td>
                                 <td>{cita.hora_inicio} a {cita.hora_fin}</td>
-                                <td>{cita.numero_invitados}</td>
-                                <td>
+                                <td className="text-center">{cita.numero_invitados}</td>
+                                <td className="text-center">
                                     <span className={`badge ${
                                         cita.estado_cita === 'Confirmada' ? 'bg-success' :
+                                        cita.estado_cita === 'Pendiente' ? 'bg-warning text-dark' :
                                         'bg-danger'
                                     }`}>
                                         {cita.estado_cita}
                                     </span>
                                 </td>
-                                <td>
+                                <td className="text-center">
                                     <button 
                                         onClick={() => handleShowQrModal(cita)} 
-                                        className="btn btn-secondary btn-sm me-2" 
+                                        className="btn btn-secondary btn-sm me-2 align-items-center gap-1" 
                                         title="Ver Código QR"
                                         disabled={!cita.url_validacion}
                                     >
+                                        <i className="bi bi-qr-code m-1"></i>
                                         QR
                                     </button>
                                     <button onClick={() => handleShowCitaModal(cita)} className="btn btn-warning btn-sm me-2" title="Editar Cita">
-                                        Editar
+                                        <i className="bi bi-pencil-fill"></i> Editar
                                     </button>
                                     <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm me-2" title="Gestionar Invitados">
-                                        Invitados
+                                        <i className="bi bi-people-fill"></i> Invitados
                                     </button>
-                                    <button onClick={() => handleShowDeleteModal(cita)} className="btn btn-danger btn-sm" title="Eliminar Cita">
-                                        Eliminar
+                                    <button onClick={() => handleShowDeleteModal(cita)} className="btn btn-danger btn-sm align-items-center gap-1" title="Eliminar Cita">
+                                        <i className="bi bi-trash-fill"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -260,8 +319,6 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
                 Volver al Perfil
             </Link>
 
-            {/* --- TODOS LOS MODALES SON IDÉNTICOS AL CRUD_CITAS DE ADMIN --- */}
-            
             {/* --- MODAL PARA CREAR/EDITAR CITA --- */}
             <Modal show={showCitaModal} onHide={() => setShowCitaModal(false)}>
                 <Modal.Header closeButton>
@@ -270,23 +327,26 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
                     </Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleCitaSubmit}>
+                    {/* ... (Contenido del formulario de cita idéntico) ... */}
                     <Modal.Body>
                         <Form.Group className="mb-3">
                             <Form.Label>Motivo</Form.Label>
                             <Form.Control type="text" name="motivo" value={formDataCita.motivo} onChange={handleCitaFormChange} required />
                         </Form.Group>
                         <div className="row">
-                            <div className="col-md-6"><Form.Group><Form.Label>Fecha Inicio</Form.Label><Form.Control type="date" name="fecha_inicio" value={formDataCita.fecha_inicio} onChange={handleCitaFormChange} required /></Form.Group></div>
-                            <div className="col-md-6"><Form.Group><Form.Label>Fecha Fin</Form.Label><Form.Control type="date" name="fecha_fin" value={formDataCita.fecha_fin} onChange={handleCitaFormChange} required /></Form.Group></div>
+                            <div className="col-md-6"><Form.Group><Form.Label>Fecha Inicio</Form.Label><Form.Control type="date" name="fecha_inicio" value={formDataCita.fecha_inicio} onChange={handleCitaFormChange} /></Form.Group></div>
+                            <div className="col-md-6"><Form.Group><Form.Label>Fecha Fin</Form.Label><Form.Control type="date" name="fecha_fin" value={formDataCita.fecha_fin} onChange={handleCitaFormChange} /></Form.Group></div>
                         </div>
                         <div className="row mt-3">
-                            <div className="col-md-6"><Form.Group><Form.Label>Hora Inicio</Form.Label><Form.Control type="time" name="hora_inicio" value={formDataCita.hora_inicio} onChange={handleCitaFormChange} required /></Form.Group></div>
-                            <div className="col-md-6"><Form.Group><Form.Label>Hora Fin</Form.Label><Form.Control type="time" name="hora_fin" value={formDataCita.hora_fin} onChange={handleCitaFormChange} required /></Form.Group></div>
+                            <div className="col-md-6"><Form.Group><Form.Label>Hora Inicio</Form.Label><Form.Control type="time" name="hora_inicio" value={formDataCita.hora_inicio} onChange={handleCitaFormChange} /></Form.Group></div>
+                            <div className="col-md-6"><Form.Group><Form.Label>Hora Fin</Form.Label><Form.Control type="time" name="hora_fin" value={formDataCita.hora_fin} onChange={handleCitaFormChange} /></Form.Group></div>
                         </div>
+                        {/* El usuario normal puede ver el estado pero no siempre debería poder cambiarlo a 'Confirmada' el mismo, depende de tu lógica de negocio. Aquí lo dejo editable. */}
                          <Form.Group className="mb-3 mt-3">
                             <Form.Label>Estado</Form.Label>
                             <Form.Select name="estado_cita" value={formDataCita.estado_cita} onChange={handleCitaFormChange}>
                                 <option value="Confirmada">Confirmada</option>
+                                {/* <option value="Confirmada">Confirmada</option> (Tal vez ocultar para usuario normal?) */}
                                 <option value="Cancelada">Cancelada</option>
                             </Form.Select>
                         </Form.Group>
@@ -305,35 +365,45 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
                 <Modal.Header closeButton>
                     <Modal.Title>Confirmar Eliminación</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>¿Estás seguro que deseas eliminar la cita: <strong>{currentCita?.motivo}</strong>? Se borrarán todos sus invitados y el QR asociado.</Modal.Body>
+                <Modal.Body>¿Estás seguro que deseas eliminar la cita: <strong>{currentCita?.motivo}</strong>?</Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
                     <Button variant="danger" onClick={handleDeleteCita}>Eliminar Cita</Button>
                 </Modal.Footer>
             </Modal>
 
-            {/* --- MODAL PARA GESTIONAR INVITADOS --- */}
+            {/* --- MODAL PARA GESTIONAR INVITADOS (CON EDICIÓN) --- */}
             <Modal show={showInvitadoModal} onHide={() => setShowInvitadoModal(false)} size="lg">
                 <Modal.Header closeButton>
                     <Modal.Title>Invitados de la Cita: {currentCita?.motivo}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <h5>Agregar Nuevo Invitado</h5>
+                    <h5>{currentInvitado ? "Editar Invitado" : "Agregar Nuevo Invitado"}</h5>
+                    
                     <Form onSubmit={handleInvitadoSubmit} className="mb-4 p-3 bg-light rounded">
                         <div className="row g-2">
                             <div className="col-md-6"><Form.Control name="nombre" placeholder="Nombre" onChange={handleInvitadoFormChange} value={formDataInvitado.nombre} required /></div>
-                            <div className="col-md-6"><Form.Control type="email" name="correo" placeholder="Correo" onChange={handleInvitadoFormChange} value={formDataInvitado.correo} required /></div>
-                            <div className="col-md-6"><Form.Control name="empresa" placeholder="Empresa" onChange={handleInvitadoFormChange} value={formDataInvitado.empresa} required /></div>
+                            <div className="col-md-6"><Form.Control name="correo" placeholder="Correo" onChange={handleInvitadoFormChange} value={formDataInvitado.correo} required /></div>
+                            <div className="col-md-6"><Form.Control name="empresa" placeholder="Empresa" onChange={handleInvitadoFormChange} value={formDataInvitado.empresa} /></div>
                             <div className="col-md-6"><Form.Control name="tipo_visitante" placeholder="Tipo (ej. Proveedor)" onChange={handleInvitadoFormChange} value={formDataInvitado.tipo_visitante} required /></div>
                         </div>
-                        <Button type="submit" variant="primary" className="mt-2">Agregar Invitado</Button>
+                        <div className="mt-2 d-flex gap-2">
+                            <Button type="submit" variant={currentInvitado ? "warning" : "primary"}>
+                                {currentInvitado ? "Actualizar Invitado" : "Agregar Invitado"}
+                            </Button>
+                            {currentInvitado && (
+                                <Button variant="secondary" onClick={handleCancelEditInvitado}>
+                                    Cancelar Edición
+                                </Button>
+                            )}
+                        </div>
                     </Form>
                     
                     <hr />
                     
                     <h5>Invitados Actuales ({invitadosList.length})</h5>
                     <Table striped bordered hover size="sm">
-                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Eliminar</th></tr></thead>
+                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Acciones</th></tr></thead>
                         <tbody>
                             {invitadosList.map(inv => (
                                 <tr key={inv.id}>
@@ -342,7 +412,21 @@ function Mis_Citas() { // <-- CAMBIO DE NOMBRE (OPCIONAL)
                                     <td>{inv.empresa}</td>
                                     <td className="text-center">{inv.tipo_visitante}</td>
                                     <td className="text-center">
-                                        <Button variant="danger" size="sm" onClick={() => handleDeleteInvitado(inv.id)}>X</Button>
+                                        <Button 
+                                            variant="warning" 
+                                            size="sm" 
+                                            className="me-2"
+                                            onClick={() => handleEditInvitado(inv)}
+                                        >
+                                            <i className="bi bi-pencil-fill"></i>
+                                        </Button>
+                                        <Button 
+                                            variant="danger" 
+                                            size="sm" 
+                                            onClick={() => handleDeleteInvitado(inv.id)}
+                                        >
+                                            <i className="bi bi-trash-fill"></i>
+                                        </Button>
                                     </td>
                                 </tr>
                             ))}
