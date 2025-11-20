@@ -286,7 +286,7 @@ function Crud_Citas() {
                                 <td>{cita.fecha_inicio} al {cita.fecha_fin}</td>
                                 <td>{cita.hora_inicio} a {cita.hora_fin}</td>
                                 <td className="text-center">{cita.numero_invitados}</td>
-                                <td className="text-center">
+                                <td className="text-center ">
                                     <span className={`badge ${
                                         cita.estado_cita === 'Confirmada' ? 'bg-success' :
                                         'bg-danger'
