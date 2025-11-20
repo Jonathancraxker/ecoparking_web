@@ -12,7 +12,7 @@ const initialCitaForm = {
     hora_inicio: "",
     hora_fin: "",
     motivo: "",
-    estado_cita: "Pendiente",
+    estado_cita: "Confirmada",
     numero_invitados: 0,
     invitados: [] 
 };
@@ -81,7 +81,7 @@ function Crud_Citas() {
                 hora_inicio: cita.hora_inicio || "",
                 hora_fin: cita.hora_fin || "",
                 motivo: cita.motivo || "",
-                estado_cita: cita.estado_cita || "Pendiente",
+                estado_cita: cita.estado_cita || "Confirmada",
                 numero_invitados: cita.numero_invitados || 0
             });
         } else {
@@ -289,7 +289,6 @@ function Crud_Citas() {
                                 <td className="text-center">
                                     <span className={`badge ${
                                         cita.estado_cita === 'Confirmada' ? 'bg-success' :
-                                        cita.estado_cita === 'Pendiente' ? 'bg-warning text-dark' :
                                         'bg-danger'
                                     }`}>
                                         {cita.estado_cita}
@@ -349,7 +348,6 @@ function Crud_Citas() {
                          <Form.Group className="mb-3 mt-3">
                             <Form.Label>Estado</Form.Label>
                             <Form.Select name="estado_cita" value={formDataCita.estado_cita} onChange={handleCitaFormChange}>
-                                <option value="Pendiente">Pendiente</option>
                                 <option value="Confirmada">Confirmada</option>
                                 <option value="Cancelada">Cancelada</option>
                             </Form.Select>
