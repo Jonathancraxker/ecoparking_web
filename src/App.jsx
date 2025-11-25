@@ -17,10 +17,10 @@ function App() {
       {/* Rutas Públicas */}
       <Route path="/" element={<Login />} /> 
       <Route path="/registro" element={<Registro />} />
+      <Route path="/codigo" element={<Codigo_qr />} />
 
       {/* Rutas Privadas (protegidas por el login) */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/codigo" element={<Codigo_qr />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/mis_citas" element={<Mis_Citas />} />
       </Route>
