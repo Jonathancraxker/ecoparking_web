@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:4000/ecoparking';
+const BASE_URL = 'https://ecoparking-api.onrender.com/ecoparking';
 
 // Instancia para peticiones públicas (Login, Registro, Refresh, etc)
 export const api = axios.create({
