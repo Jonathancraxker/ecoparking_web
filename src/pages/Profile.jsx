@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext.jsx';
 import useAxiosPrivate from '../hooks/useAxiosPrivate.js';
-import { Link } from 'react-router-dom';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, Card, Row, Col, Table, Badge } from 'react-bootstrap';
 import Swal from 'sweetalert2';
 
 function Profile() {
-    const { logout } = useAuth(); 
     const [profileData, setProfileData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const axiosPrivate = useAxiosPrivate();
+    
     const [showEditModal, setShowEditModal] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
+    
     const [formData, setFormData] = useState({
         nombre: '',
         correo: '',
@@ -34,7 +33,7 @@ function Profile() {
             setProfileData(response.data);
             setLoading(false);
         } catch (err) {
-             if (err.name !== 'CanceledError') {
+            if (err.name !== 'CanceledError') {
                 console.error("Error al obtener perfil:", err);
                 setError("No se pudieron cargar los datos del perfil.");
                 setLoading(false);
@@ -49,8 +48,6 @@ function Profile() {
         return () => controller?.abort();
     }, [axiosPrivate]);
 
-
-    //Editar pefil
     const handleShowEdit = () => {
         if (profileData) {
             setFormData({
@@ -79,7 +76,6 @@ function Profile() {
         }
     };
 
-    // Cambiar contraseña
     const handleShowPassword = () => {
         setPasswordData({ contrasena: '', confirmarContrasena: '' });
         setShowEditModal(false);
@@ -96,8 +92,8 @@ function Profile() {
             Swal.fire("Error", "Las contraseñas no coinciden.", "error");
             return;
         }
-        if (passwordData.contrasena.length < 6) {
-            Swal.fire("Error", "La contraseña debe tener al menos 6 caracteres.", "error");
+        if (passwordData.contrasena.length < 8) {
+            Swal.fire("Error", "La contraseña debe tener al menos 8 caracteres.", "error");
             return;
         }
 
@@ -105,152 +101,185 @@ function Profile() {
             await axiosPrivate.put(`/usuarios/update/${profileData.id}`, {
                 contrasena: passwordData.contrasena
             });
-
-            Swal.fire("¡Éxito!", "Contraseña actualizada.", "success");
+            Swal.fire("¡Éxito!", "Contraseña actualizada correctamente.", "success");
             setShowPasswordModal(false);
         } catch (err) {
             Swal.fire("Error", "No se pudo actualizar la contraseña.", "error");
         }
     };
 
-
     if (loading) {
-        return <div className="container p-4">Cargando perfil...</div>;
+        return (
+            <div className="d-flex justify-content-center align-items-center vh-100">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="container p-4">
-            <h2>Perfil de Usuario</h2>
-            
-            {error && <div className="alert alert-danger">{error}</div>}
+        <div className="container-fluid p-4 mt-3">
+            <header className="mb-4">
+                <h2 className="fw-bold text-dark">Configuración de Perfil</h2>
+                <p className="text-muted">Gestiona tu información personal y seguridad de la cuenta.</p>
+            </header>
 
-            {profileData ? (
-                <div className="card p-4 shadow-sm mb-4">
-                    <ul className="list-group list-group-flush">
-                        <li className="list-group-item"><strong>Nombre:</strong> {profileData.nombre}</li>
-                        <li className="list-group-item"><strong>Correo:</strong> {profileData.correo}</li>
-                        <li className="list-group-item"><strong>Teléfono:</strong> {profileData.telefono}</li>
-                        <li className="list-group-item"><strong>División:</strong> {profileData.division}</li>
-                        <li className="list-group-item"><strong>Tipo:</strong> {profileData.tipo_usuario}</li>
-                        <li className="list-group-item"><strong>Código:</strong> {profileData.codigo}</li>
-                    </ul>
-                    <div className="mt-3">
-                        <Button variant="primary" onClick={handleShowEdit} className="btn btn-primary btn-sm me-2">
-                            <i className="bi bi-pencil-fill m-1"></i> 
-                            Editar Perfil
-                        </Button>
-                    </div>
-                </div>
-            ) : (
-                !loading && !error && <p>No se pudieron cargar los datos del perfil.</p>
+            {error && <div className="alert alert-danger shadow-sm">{error}</div>}
+
+            {profileData && (
+                <Row className="g-4">
+                    {/* Tarjeta de Usuario Principal */}
+                    <Col lg={4}>
+                        <Card className="border-0 shadow-sm text-center p-4 h-100">
+                            <Card.Body>
+                                <div className="mb-4">
+                                    <div className="bg-primary bg-gradient d-inline-flex align-items-center justify-content-center rounded-circle text-white shadow" 
+                                         style={{ width: '100px', height: '100px', fontSize: '2.5rem' }}>
+                                        {profileData.nombre?.charAt(0).toUpperCase()}
+                                    </div>
+                                </div>
+                                <h4 className="fw-bold">{profileData.nombre}</h4>
+                                
+                                <h6 className="fw-bold border-bottom mb-3 px-3 py-2">{profileData.tipo_usuario}</h6>
+                                
+                                <div className="d-grid gap-2 mt-2">
+                                    <Button variant="primary" onClick={handleShowEdit}>
+                                        <i className="bi bi-pencil-square me-2"></i>Editar Perfil
+                                    </Button>
+                                    <Button variant="outline-secondary" onClick={handleShowPassword}>
+                                        <i className="bi bi-shield-lock me-2"></i>Seguridad
+                                    </Button>
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+
+                    {/* Información Detallada */}
+                    <Col lg={8}>
+                        <Card className="border-0 shadow-sm h-100">
+                            <Card.Header className="bg-white border-0 py-3">
+                                <h5 className="mb-0 fw-bold text-primary">Información General</h5>
+                            </Card.Header>
+                            <Card.Body className="p-0">
+                                <Table responsive hover className="mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <td className="ps-4 py-3 text-muted w-25">Nombre</td>
+                                            <td className="py-3 fw-semibold">{profileData.nombre}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="ps-4 py-3 text-muted w-25">Correo</td>
+                                            <td className="py-3 fw-semibold">{profileData.correo}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="ps-4 py-3 text-muted">Teléfono</td>
+                                            <td className="py-3 text-primary">{profileData.telefono || 'No asignado'}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="ps-4 py-3 text-muted">División</td>
+                                            <td className="py-3">{profileData.division}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="ps-4 py-3 text-muted">Código</td>
+                                            <td className="py-3 font-monospace">{profileData.codigo}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="ps-4 py-3 text-muted">Rol</td>
+                                            <td className="py-3 font-monospace">{profileData.tipo_usuario}</td>
+                                        </tr>
+                                    </tbody>
+                                </Table>
+                            </Card.Body>
+                            <Card.Footer className="bg-light border-0 py-3">
+                                <small className="text-muted italic">
+                                    <i className="bi bi-info-circle me-1"></i>
+                                    Tu cuenta está vinculada a los servicios de EcoParking.
+                                </small>
+                            </Card.Footer>
+                        </Card>
+                    </Col>
+                </Row>
             )}
+
+            {/* --- MODALES --- */}
             
-            <div className="mt-2 d-flex flex-wrap gap-2">
-                <button onClick={logout} className="btn btn-danger">
-                    <i className="bi bi-box-arrow-right me-1"></i>Cerrar Sesión
-                </button>
-
-                <Link to="/codigo" className="btn btn-secondary">
-                    <i className="bi bi-qr-code-scan me-1"></i>Validador QR
-                </Link>
-
-                <Link to="/crud_usuarios" className="btn btn-success">
-                    <i className="bi bi-people-fill me-1"></i>Gestionar Usuarios
-                </Link>
-
-                <Link to="/crud_citas" className="btn btn-success">
-                    <i className="bi bi-calendar-range-fill me-1"></i>Gestionar Citas (Juca)
-                </Link>
-
-                <Link to="/mis_citas" className="btn btn-warning">
-                    <i className="bi bi-calendar-event-fill me-1"></i>Gestionar Mis Citas
-                </Link>
-
-                <Link to="/Reportes" className="btn btn-primary">
-                    <i className="bi bi-clipboard-data me-1"></i>Reportes
-                </Link>
-            </div>
-
-            {/* --- MODAL EDITAR PERFIL --- */}
-            <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Editar Perfil</Modal.Title>
+            {/* Modal Editar Perfil */}
+            <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
+                <Modal.Header closeButton className="border-0">
+                    <Modal.Title className="fw-bold">Actualizar Información</Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleEditSubmit}>
-                    <Modal.Body>
+                    <Modal.Body className="py-0">
                         <Form.Group className="mb-3">
-                            <Form.Label>Nombre</Form.Label>
+                            <Form.Label className="small fw-bold">Nombre Completo</Form.Label>
                             <Form.Control type="text" name="nombre" value={formData.nombre} onChange={handleEditChange} required />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Correo</Form.Label>
+                            <Form.Label className="small fw-bold">Correo Electrónico</Form.Label>
                             <Form.Control type="email" name="correo" value={formData.correo} onChange={handleEditChange} required />
                         </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Teléfono</Form.Label>
-                            <Form.Control type="tel" name="telefono" value={formData.telefono} onChange={handleEditChange} minLength="10" maxLength="10" />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>División</Form.Label>
-                            <Form.Control type="text" name="division" value={formData.division} onChange={handleEditChange} />
-                        </Form.Group>
-                        
-                        <div className="mt-3">
-                            <Button variant="link" onClick={handleShowPassword}>
-                                ¿Deseas cambiar tu contraseña?
-                            </Button>
-                        </div>
+                        <Row>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="small fw-bold">Teléfono</Form.Label>
+                                    <Form.Control type="tel" name="telefono" value={formData.telefono} onChange={handleEditChange} maxLength="10" />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="small fw-bold">División</Form.Label>
+                                    <Form.Control type="text" name="division" value={formData.division} onChange={handleEditChange} />
+                                </Form.Group>
+                            </Col>
+                        </Row>
                     </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowEditModal(false)}>Cancelar</Button>
+                    <Modal.Footer className="border-0">
+                        <Button variant="light" onClick={() => setShowEditModal(false)}>Cancelar</Button>
                         <Button variant="primary" type="submit">Guardar Cambios</Button>
                     </Modal.Footer>
                 </Form>
             </Modal>
 
-            {/* --- MODAL CAMBIAR CONTRASEÑA --- */}
+            {/* Modal Cambiar Contraseña */}
             <Modal show={showPasswordModal} onHide={() => setShowPasswordModal(false)} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Cambiar Contraseña</Modal.Title>
+                <Modal.Header closeButton className="border-0">
+                    <Modal.Title className="fw-bold text-danger">Seguridad de la Cuenta</Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handlePasswordSubmit}>
                     <Modal.Body>
                         <Form.Group className="mb-3">
-                            <Form.Label>Nueva Contraseña</Form.Label>
+                            <Form.Label className="small fw-bold">Nueva contraseña</Form.Label>
                             <Form.Control 
                                 type="password" 
                                 name="contrasena" 
                                 value={passwordData.contrasena} 
                                 onChange={handlePasswordChange} 
                                 required 
-                                placeholder="Mínimo 6 caracteres"
-                                minLength="6"
+                                minLength="8"
                                 pattern=".*[^A-Za-z0-9].*"
-                                title="La contraseña debe tener al menos 6 caracteres y un carácter especial (ej. !@#$%)."
+                                placeholder="Al menos 8 caracteres"
+                                title="La contraseña debe tener al menos 8 caracteres y un carácter especial (ej. !@#$%)."
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Confirmar Contraseña</Form.Label>
+                            <Form.Label className="small fw-bold">Confirmar contraseña</Form.Label>
                             <Form.Control 
                                 type="password" 
                                 name="confirmarContrasena" 
                                 value={passwordData.confirmarContrasena} 
                                 onChange={handlePasswordChange} 
                                 required
-                                placeholder="Mínimo 6 caracteres"
-                                minLength="6"
-                                pattern=".*[^A-Za-z0-9].*"
-                                title="La contraseña debe tener al menos 6 caracteres y un carácter especial (ej. !@#$%)."
+                                placeholder='Al menos 8 caracteres'
                             />
                         </Form.Group>
                     </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowPasswordModal(false)}>Cancelar</Button>
-                        <Button variant="primary" type="submit">Actualizar Contraseña</Button>
+                    <Modal.Footer className="border-0">
+                        <Button variant="light" onClick={() => setShowPasswordModal(false)}>Cancelar</Button>
+                        <Button variant="danger" type="submit">Actualizar Contraseña</Button>
                     </Modal.Footer>
                 </Form>
             </Modal>
-
         </div>
     );
 }

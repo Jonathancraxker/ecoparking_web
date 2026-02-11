@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import useAxiosPrivate from '../hooks/useAxiosPrivate.js'; 
 import { Modal, Button, Form, Table } from "react-bootstrap";
 import Swal from "sweetalert2";
@@ -319,10 +318,6 @@ function Crud_Citas() {
                     </tbody>
                 </table>
             </div>
-            
-            <Link to="/profile" className="btn btn-secondary mt-3">
-                Volver al Perfil
-            </Link>
 
             {/* --- MODAL PARA CREAR/EDITAR CITA --- */}
             <Modal show={showCitaModal} onHide={() => setShowCitaModal(false)}>

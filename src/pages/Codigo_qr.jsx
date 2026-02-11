@@ -1,72 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Link } from 'react-router-dom';
 
 export default function Codigo_qr() {
     const [searchParams] = useSearchParams();
-    // Si no hay 'status' en la URL, se pone en 'checking'
-    const [status, setStatus] = useState(() => {
-        return searchParams.get('status') || 'checking';
-    });
-
-    // (Opcional) Guardamos la razón de la falla
-    const [reason, setReason] = useState(() => {
-        return searchParams.get('reason') || '';
-    });
+    const [status] = useState(() => searchParams.get('status') || 'checking');
+    const [reason] = useState(() => searchParams.get('reason') || '');
 
     const renderContent = () => {
-        //Función para mostrar las razones de error
         const getReasonMessage = (reasonCode) => {
             switch(reasonCode) {
                 case 'no_encontrada': return 'El código QR no existe o es inválido.';
                 case 'no_tiene_cita': return 'La cita asociada fue eliminada.';
-                // case 'pendiente': return 'La cita esta en proceso'; //Agregar solo si se agrega status pendiente
-                case 'cancelada': return 'La cita fue cancelada';
+                case 'cancelada': return 'La cita fue cancelada por un administrador.';
                 case 'not_yet': return 'La cita aún no ha comenzado.';
                 case 'expired': return 'La cita ya ha finalizado.';
                 case 'server_error': return 'Error del servidor. Intente de nuevo.';
                 default: return 'Acceso no autorizado o código inválido.';
             }
-        }
+        };
 
-        switch (status) {
-            case 'valido':
-                return (
-                    <div className="alert alert-success p-5 text-center shadow-sm" role="alert">
-                        <h1 className="display-4 fw-bold mb-3">✅ CÓDIGO VÁLIDO</h1>
-                        <p className="fs-5">Acceso concedido. ¡Bienvenido!</p>
+        const configs = {
+            valido: {
+                color: 'success',
+                icon: 'bi-check-circle-fill',
+                title: 'ACCESO CONCEDIDO',
+                desc: '¡Bienvenido a EcoParking!',
+                btn: 'btn-success'
+            },
+            denegado: {
+                color: 'danger',
+                icon: 'bi-x-circle-fill',
+                title: 'ACCESO DENEGADO',
+                desc: getReasonMessage(reason),
+                btn: 'btn-danger'
+            },
+            checking: {
+                color: 'primary',
+                icon: 'spinner-border',
+                title: 'VALIDANDO...',
+                desc: 'Verificando credenciales en el sistema.',
+                btn: 'btn-primary'
+            }
+        };
+
+        const config = configs[status] || configs.denegado;
+
+        return (
+            <div className={`card border-0 shadow-lg text-center overflow-hidden animate__animated animate__fadeIn`}>
+                {/* Franja de color superior */}
+                <div className={`bg-${config.color} py-2`}></div>
+                
+                <div className="card-body p-5">
+                    <div className="mb-4">
+                        {status === 'checking' ? (
+                            <div className="spinner-border text-primary" style={{ width: '4rem', height: '4rem' }} role="status"></div>
+                        ) : (
+                            <i className={`bi ${config.icon} display-1 text-${config.color}`}></i>
+                        )}
                     </div>
-                );
-            case 'denegado':
-                return (
-                    <div className="alert alert-danger p-5 text-center shadow-sm" role="alert">
-                        <h1 className="display-4 fw-bold mb-3">❌ CÓDIGO DENEGADO</h1>
-                        {/* Mostramos el mensaje de error específico */}
-                        <p className="fs-5">{getReasonMessage(reason)}</p>
-                    </div>
-                );
-            case 'checking':
-            default:
-                return (
-                    <div className="alert alert-info p-5 text-center shadow-sm" role="alert">
-                        <h1 className="display-4 fw-bold mb-3">⏳ VALIDANDO CÓDIGO...</h1>
-                        <p className="fs-5">Redirigiendo, por favor espere...</p>
-                        {/* <Link to="/profile" className="btn btn-primary mt-3 ms-2">
-                            Perfil de usuario
-                        </Link> */}
-                    </div>
-                );
-        }
+
+                    <h1 className={`h2 fw-bold text-${config.color} mb-3`}>
+                        {config.title}
+                    </h1>
+                    
+                    <p className="text-muted fs-5 mb-4 px-3">
+                        {config.desc}
+                    </p>
+                </div>
+
+                {/* Pie de página decorativo */}
+                <div className="card-footer bg-light border-0 py-3">
+                    <small className="text-muted font-monospace">© EcoParking</small>
+                </div>
+            </div>
+        );
     };
 
     return (
         <div 
-            className="d-flex justify-content-center align-items-center bg-light" 
-            style={{ minHeight: "100vh" }}
+            className="d-flex justify-content-center align-items-center bg-dark" 
+            style={{ 
+                minHeight: "100vh",
+                background: "linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%)"
+            }}
         >
             <div className="container">
                 <div className="row justify-content-center">
-                    <div className="col-lg-8 col-xl-6">
+                    <div className="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
                         {renderContent()}
                     </div>
                 </div>
