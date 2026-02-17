@@ -268,7 +268,7 @@ function Crud_Citas() {
                         <tr>
                             <th>ID</th>
                             <th>Motivo</th>
-                            <th className="text-center">Usuario (ID)</th>
+                            <th className="text-center">User_ID</th>
                             <th>Fecha</th>
                             <th>Hora</th>
                             <th>Invitados</th>
@@ -294,24 +294,26 @@ function Crud_Citas() {
                                     </span>
                                 </td>
                                 <td className="text-center">
-                                    <button 
-                                        onClick={() => handleShowQrModal(cita)} 
-                                        className="btn btn-secondary btn-sm me-2 align-items-center gap-1" 
-                                        title="Ver Código QR"
-                                        disabled={!cita.url_validacion}
-                                    >
-                                        <i className="bi bi-qr-code m-1"></i>
-                                        QR
-                                    </button>
-                                    <button onClick={() => handleShowCitaModal(cita)} className="btn btn-warning btn-sm me-2" title="Editar Cita">
-                                        <i className="bi bi-pencil-fill"></i> Editar
-                                    </button>
-                                    <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm me-2" title="Gestionar Invitados">
-                                        <i className="bi bi-people-fill"></i> Invitados
-                                    </button>
-                                    <button onClick={() => handleShowDeleteModal(cita)} className="btn btn-danger btn-sm align-items-center gap-1" title="Eliminar Cita">
-                                        <i className="bi bi-trash-fill"></i>
-                                    </button>
+                                    <div className="d-flex flex-wrap justify-content-center gap-2">
+                                        <button 
+                                            onClick={() => handleShowQrModal(cita)} 
+                                            className="btn btn-secondary btn-sm" 
+                                            title="Ver Código QR"
+                                            disabled={!cita.url_validacion}
+                                        >
+                                            <i className="bi bi-qr-code m-1"></i>
+                                            QR
+                                        </button>
+                                        <button onClick={() => handleShowCitaModal(cita)} className="btn btn-warning btn-sm" title="Editar Cita">
+                                            <i className="bi bi-pencil-fill"></i> Editar
+                                        </button>
+                                        <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm" title="Gestionar Invitados">
+                                            <i className="bi bi-people-fill m-1"></i> Invitados
+                                        </button>
+                                        <button onClick={() => handleShowDeleteModal(cita)} className="btn btn-danger btn-sm" title="Eliminar Cita">
+                                            <i className="bi bi-trash-fill"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
