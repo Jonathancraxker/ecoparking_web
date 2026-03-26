@@ -13,6 +13,7 @@ const initialCitaForm = {
     motivo: "",
     estado_cita: "Confirmada",
     numero_invitados: 0,
+    id_cajon: "",
     invitados: [] 
 };
 
@@ -47,6 +48,10 @@ function Crud_Citas() {
     // --- NUEVO: Estado para saber qué invitado estamos editando ---
     const [currentInvitado, setCurrentInvitado] = useState(null);
 
+    // --- NUEVO: Estados para los cajones disponibles ---
+        const [cajonesDisponibles, setCajonesDisponibles] = useState([]);
+        const [buscandoCajones, setBuscandoCajones] = useState(false);
+
     // --- Cargar todas las citas ---
     const fetchCitas = async () => {
         setLoading(true);
@@ -69,6 +74,40 @@ function Crud_Citas() {
         fetchCitas();
     }, [axiosPrivate]);
 
+    // --- NUEVO: Escuchar cambios en fechas/horas para buscar cajones ---
+        useEffect(() => {
+            const fetchCajonesDisponibles = async () => {
+                const { fecha_inicio, fecha_fin, hora_inicio, hora_fin } = formDataCita;
+                
+                if (fecha_inicio && fecha_fin && hora_inicio && hora_fin) {
+                    setBuscandoCajones(true);
+                    try {
+                        // Preparamos los datos a enviar
+                        const payload = { fecha_inicio, fecha_fin, hora_inicio, hora_fin };
+                        
+                        // NUEVO: Si estamos editando, mandamos el ID de la cita actual
+                        if (currentCita) {
+                            payload.id_cita = currentCita.id;
+                        }
+    
+                        const response = await axiosPrivate.post('/api/cajones/filtrar-disponibles', payload);
+                        setCajonesDisponibles(response.data);
+                        
+                        if (formDataCita.id_cajon && !response.data.find(c => c.id == formDataCita.id_cajon)) {
+                            setFormDataCita(prev => ({ ...prev, id_cajon: "" }));
+                        }
+                    } catch (error) {
+                        console.error("Error al buscar cajones disponibles:", error);
+                    } finally {
+                        setBuscandoCajones(false);
+                    }
+                } else {
+                    setCajonesDisponibles([]);
+                }
+            };
+    
+            fetchCajonesDisponibles();
+        }, [formDataCita.fecha_inicio, formDataCita.fecha_fin, formDataCita.hora_inicio, formDataCita.hora_fin, currentCita, axiosPrivate]);
 
     // --- MANEJO DE MODAL DE CITA (CREAR/EDITAR) ---
     const handleShowCitaModal = (cita = null) => {
@@ -81,7 +120,8 @@ function Crud_Citas() {
                 hora_fin: cita.hora_fin || "",
                 motivo: cita.motivo || "",
                 estado_cita: cita.estado_cita || "Confirmada",
-                numero_invitados: cita.numero_invitados || 0
+                numero_invitados: cita.numero_invitados || 0,
+                id_cajon: cita.id_cajon || ""
             });
         } else {
             setFormDataCita(initialCitaForm);
@@ -342,7 +382,35 @@ function Crud_Citas() {
                             <div className="col-md-6"><Form.Group><Form.Label>Hora Inicio</Form.Label><Form.Control type="time" name="hora_inicio" value={formDataCita.hora_inicio} onChange={handleCitaFormChange} /></Form.Group></div>
                             <div className="col-md-6"><Form.Group><Form.Label>Hora Fin</Form.Label><Form.Control type="time" name="hora_fin" value={formDataCita.hora_fin} onChange={handleCitaFormChange} /></Form.Group></div>
                         </div>
-                         <Form.Group className="mb-3 mt-3">
+                        
+                        {/* --- NUEVO: Selector de Cajones Dinámico --- */}
+                        <Form.Group className="mb-3 mt-3">
+                            <Form.Label>Lugar de Estacionamiento</Form.Label>
+                            <Form.Select 
+                                name="id_cajon" 
+                                value={formDataCita.id_cajon} 
+                                onChange={handleCitaFormChange} 
+                                required
+                                disabled={!formDataCita.fecha_inicio || !formDataCita.fecha_fin || !formDataCita.hora_inicio || !formDataCita.hora_fin || buscandoCajones}
+                            >
+                            <option value="">
+                        {buscandoCajones 
+                            ? "Buscando lugares disponibles..." 
+                            : (!formDataCita.fecha_inicio || !formDataCita.fecha_fin || !formDataCita.hora_inicio || !formDataCita.hora_fin)
+                                ? "Selecciona fechas y horas primero"
+                                : cajonesDisponibles.length === 0
+                                ? "No hay cajones disponibles en este horario"
+                                : "Selecciona un cajón disponible"}
+                            </option>
+                                                        
+                                {cajonesDisponibles.map((cajon) => (
+                                    <option key={cajon.id} value={cajon.id}>
+                                        {cajon.numero_cajon} 
+                                        </option>
+                                    ))}
+                            </Form.Select>
+                        </Form.Group>
+                        <Form.Group className="mb-3 mt-3">
                             <Form.Label>Estado</Form.Label>
                             <Form.Select name="estado_cita" value={formDataCita.estado_cita} onChange={handleCitaFormChange}>
                                 <option value="Confirmada">Confirmada</option>

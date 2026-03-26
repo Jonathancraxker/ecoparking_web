@@ -6,12 +6,13 @@ export default function Codigo_qr() {
     const [status] = useState(() => searchParams.get('status') || 'checking');
     const [reason] = useState(() => searchParams.get('reason') || '');
 
-    // Capturamos los datos adicionales de la URL
+    // Capturamos los datos adicionales de la URL, agregando "cajon"
     const citaData = {
         motivo: searchParams.get('motivo') || '',
         fecha: searchParams.get('fecha') || '',
         fecha_fin: searchParams.get('fecha_fin') || '',
-        horario: searchParams.get('horario') || ''
+        horario: searchParams.get('horario') || '',
+        cajon: searchParams.get('cajon') || ''
     };
 
     const renderContent = () => {
@@ -90,10 +91,20 @@ export default function Codigo_qr() {
                                 <span className="fw-bold text-dark">Fecha fin: </span> 
                                 <span className="text-muted">{citaData.fecha_fin}</span>
                             </div>
-                            <div>
+                            <div className="mb-1">
                                 <span className="fw-bold text-dark">Horario: </span> 
                                 <span className="text-muted">{citaData.horario}</span>
                             </div>
+                            
+                            {/* NUEVO: Destacamos el cajón con un color distinto */}
+                            {citaData.cajon && (
+                                <div className="mt-3 pt-2 border-top text-center">
+                                    <span className="fw-bold text-dark d-block mb-1">Lugar de Estacionamiento: </span> 
+                                    <span className={`badge bg-${config.color === 'success' ? 'success' : 'secondary'} fs-5 px-4 py-2`}>
+                                        {citaData.cajon}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
