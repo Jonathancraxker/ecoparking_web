@@ -43,6 +43,13 @@ const Sidebar = () => {
                         Cajones disponibles
                     </Link>
                 </Nav.Item>
+                <Nav.Item>
+                    <Link to="/estado_cajones" className={`nav-link link-secondary text-white`}>
+                        <i className="bi bi-geo-alt me-2"></i>
+                        Estado de Cajones
+                    </Link>
+                </Nav.Item>
+
 
                 {/* --- Enlaces de Administrador (Solo si es Juca) --- */}
                 {/* Puedes descomentar esto cuando quieras restringir visualmente */}

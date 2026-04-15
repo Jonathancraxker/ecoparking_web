@@ -12,6 +12,7 @@ import Mis_Citas from "./pages/Mis_Citas";
 import Admin_Route from "./components/Admin_Route";
 import Reportes from "./pages/Reportes";
 import Vehiculos from "./pages/Automoviles";
+import EstadoCajones from "./pages/EstadoCajones";
 import Crud_vehiculos from "./pages/Crud_autos";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/mis_citas" element={<Mis_Citas />} />
             <Route path="/autos" element={<Vehiculos />} />
+            <Route path="/estado_cajones" element={<EstadoCajones />} />
           </Route>
           {/* Para acciones que solo realiza el usuario Juca */}
           <Route element={<Admin_Route />}>
