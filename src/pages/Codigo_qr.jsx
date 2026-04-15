@@ -6,13 +6,22 @@ export default function Codigo_qr() {
     const [status] = useState(() => searchParams.get('status') || 'checking');
     const [reason] = useState(() => searchParams.get('reason') || '');
 
+    // Capturamos los datos adicionales de la URL, agregando "cajon"
+    const citaData = {
+        motivo: searchParams.get('motivo') || '',
+        fecha: searchParams.get('fecha') || '',
+        fecha_fin: searchParams.get('fecha_fin') || '',
+        horario: searchParams.get('horario') || '',
+        cajon: searchParams.get('cajon') || ''
+    };
+
     const renderContent = () => {
         const getReasonMessage = (reasonCode) => {
             switch(reasonCode) {
                 case 'no_encontrada': return 'El código QR no existe o es inválido.';
                 case 'no_tiene_cita': return 'La cita asociada fue eliminada.';
                 case 'cancelada': return 'La cita fue cancelada por un administrador.';
-                case 'not_yet': return 'La cita aún no ha comenzado.';
+                case 'no_iniciada': return 'La cita aún no ha comenzado.';
                 case 'expired': return 'La cita ya ha finalizado.';
                 case 'server_error': return 'Error del servidor. Intente de nuevo.';
                 default: return 'Acceso no autorizado o código inválido.';
@@ -47,7 +56,6 @@ export default function Codigo_qr() {
 
         return (
             <div className={`card border-0 shadow-lg text-center overflow-hidden animate__animated animate__fadeIn`}>
-                {/* Franja de color superior */}
                 <div className={`bg-${config.color} py-2`}></div>
                 
                 <div className="card-body p-5">
@@ -66,9 +74,41 @@ export default function Codigo_qr() {
                     <p className="text-muted fs-5 mb-4 px-3">
                         {config.desc}
                     </p>
+
+                    {/* Sección de detalles: Se muestra si hay datos, sea éxito o error */}
+                    {citaData.motivo && (
+                        <div className="mt-4 p-3 bg-light rounded border text-start animate__animated animate__fadeInUp">
+                            <h6 className="text-uppercase text-secondary fw-bold small mb-2 border-bottom pb-1">Información de la Cita</h6>
+                            <div className="mb-1">
+                                <span className="fw-bold text-dark">Motivo: </span> 
+                                <span className="text-muted">{citaData.motivo}</span>
+                            </div>
+                            <div className="mb-1">
+                                <span className="fw-bold text-dark">Fecha inicio: </span> 
+                                <span className="text-muted">{citaData.fecha}</span>
+                            </div>
+                            <div className="mb-1">
+                                <span className="fw-bold text-dark">Fecha fin: </span> 
+                                <span className="text-muted">{citaData.fecha_fin}</span>
+                            </div>
+                            <div className="mb-1">
+                                <span className="fw-bold text-dark">Horario: </span> 
+                                <span className="text-muted">{citaData.horario}</span>
+                            </div>
+                            
+                            {/* NUEVO: Destacamos el cajón con un color distinto */}
+                            {citaData.cajon && (
+                                <div className="mt-3 pt-2 border-top text-center">
+                                    <span className="fw-bold text-dark d-block mb-1">Lugar de Estacionamiento: </span> 
+                                    <span className={`badge bg-${config.color === 'success' ? 'success' : 'secondary'} fs-5 px-4 py-2`}>
+                                        {citaData.cajon}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {/* Pie de página decorativo */}
                 <div className="card-footer bg-light border-0 py-3">
                     <small className="text-muted font-monospace">© EcoParking</small>
                 </div>
