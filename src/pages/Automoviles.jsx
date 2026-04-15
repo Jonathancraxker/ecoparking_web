@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import mapaUteq from '../assets/images/mapa-uteq.png';
+import mapaUteq from '../assets/images/mapa-uteq-2.png';
 import { getTodosCajones } from '../api/cajones';
 
 export default function Automoviles() {
@@ -11,10 +11,10 @@ export default function Automoviles() {
   // Rutas por zona (desde entrada principal)
   const getRutaByZona = (zona) => {
     const rutas = {
-      'A': "M 320 580 L 320 450 L 250 450 L 250 350",
-      'B': "M 320 580 L 320 480 L 380 480 L 380 410",
-      'C': "M 320 580 L 320 450 L 150 450 L 150 220",
-      'D': "M 320 580 L 320 450 L 500 450 L 500 300",
+      'A': "M 180 40 L 240 40 L 240 160 L 240 210",
+      'B': "M 180 40 L 240 40 L 240 160 L 260 160 L 260 210",
+      'C': "M 180 40 L 240 40 L 240 160 L 300 160 L 300 210",
+      'D': "M 180 40 L 240 40 L 240 160 L 350 160 L 350 210",
     };
     return rutas[zona] || "M 320 580 L 320 450 L 200 450 L 200 300";
   };
@@ -48,9 +48,25 @@ export default function Automoviles() {
     };
   };
 
-  const handleZonaClick = (zona) => {
-    setZonaSeleccionada(zona);
-  };
+  // Cambiar handleZonaClick por handleCajonClick
+    const handleCajonClick = (cajon) => {
+      // Obtener la zona del cajón (primera letra del número)
+      const zona = cajon.numero_cajon.charAt(0);
+      
+      // Verificar el estado del cajón
+      if (cajon.estado === 'Ocupado') {
+        alert('El estacionamiento actualmente se encuentra ocupado');
+        return;
+      }
+      
+      if (cajon.estado === 'Mantenimiento') {
+        alert('Lo sentimos, por el momento este cajón se encuentra en mantenimiento');
+        return;
+      }
+      
+      // Si está disponible, mostrar la ruta de su zona
+      setZonaSeleccionada(zona);
+    };
 
   const limpiarRuta = () => {
     setZonaSeleccionada(null);
@@ -149,8 +165,7 @@ export default function Automoviles() {
             
             return (
               <div 
-                key={zona} 
-                onClick={() => handleZonaClick(zona)}
+                key={zona}
                 style={{
                   display: 'flex', 
                   justifyContent: 'space-between', 
@@ -228,6 +243,7 @@ export default function Automoviles() {
                 {cajonesZona.map(cajon => (
                   <div
                     key={cajon.id}
+                    onClick={() => handleCajonClick(cajon)}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -237,7 +253,7 @@ export default function Automoviles() {
                       padding: '10px 8px',
                       backgroundColor: getEstadoColor(cajon.estado),
                       borderRadius: '8px',
-                      cursor: 'default',
+                      cursor: cajon.estado === 'Disponible' ? 'pointer' : 'not-allowed',
                       opacity: cajon.estado === 'Disponible' ? 1 : 0.7,
                       boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                     }}
