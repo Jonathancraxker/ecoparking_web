@@ -14,7 +14,7 @@ const MainLayout = () => {
       <div className="d-flex flex-grow-1" style={{ marginTop: "56px" }}> 
         {/* El marginTop debe coincidir con la altura de tu Header */}
 
-        {/* 2. Sidebar Fijo a la izquierda */}
+        {/* 2. Sidebar Fijo a la izquierda con scroll*/}
         <aside className="sticky-top" style={{ height: "calc(100vh - 56px)", top: "56px" }}>
           <Sidebar />
         </aside>

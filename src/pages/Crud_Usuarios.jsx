@@ -212,10 +212,6 @@ function Crud_Usuarios() {
                 </table>
             </div>
 
-            <Link to="/profile" className="btn btn-secondary mt-3">
-                Volver al Perfil
-            </Link>
-
             {/* --- MODAL PARA AGREGAR/ACTUALIZAR USUARIO --- */}
             <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
                 <Modal.Header closeButton>

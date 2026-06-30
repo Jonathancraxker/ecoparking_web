@@ -13,7 +13,9 @@ import Admin_Route from "./components/Admin_Route";
 import Reportes from "./pages/Reportes";
 import Vehiculos from "./pages/Automoviles";
 import EstadoCajones from "./pages/EstadoCajones";
-import Crud_vehiculos from "./pages/Crud_autos";
+import Crud_Cajones from "./pages/Crud_Cajones";
+
+import Estadisticas from "./pages/Estadisticas";
 
 function App() {
   return (
@@ -31,12 +33,13 @@ function App() {
             <Route path="/mis_citas" element={<Mis_Citas />} />
             <Route path="/autos" element={<Vehiculos />} />
             <Route path="/estado_cajones" element={<EstadoCajones />} />
+            <Route path="/estadisticas" element={<Estadisticas />} />
           </Route>
           {/* Para acciones que solo realiza el usuario Juca */}
           <Route element={<Admin_Route />}>
             <Route path="/crud_citas" element={<Crud_Citas />} />
             <Route path="/crud_usuarios" element={<Crud_Usuarios />} />
-            <Route path="/crud_autos" element={<Crud_vehiculos />} />
+            <Route path="/crud_cajones" element={<Crud_Cajones />} />
             <Route path="/reportes" element={<Reportes />} />
           </Route>
         </Route>
