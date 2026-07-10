@@ -24,6 +24,7 @@ const initialInvitadoForm = {
     correo: "",
     empresa: "",
     tipo_visitante: "",
+    matricula: "",
     id_cita: null
 };
 
@@ -197,6 +198,7 @@ function Mis_Citas() {
             correo: invitado.correo,
             empresa: invitado.empresa || "",
             tipo_visitante: invitado.tipo_visitante || "",
+            matricula: invitado.matricula || "",
             id_cita: currentCita.id
         });
     };
@@ -209,6 +211,10 @@ function Mis_Citas() {
 
     const handleInvitadoSubmit = async (e) => {
         e.preventDefault();
+         // --- LOG PARA DEPURAR ---
+        console.log("=== DATOS A ENVIAR AL BACKEND ===");
+        console.log(JSON.stringify(formDataInvitado, null, 2));  // ← MUESTRA EL JSON EXACTO
+        console.log("==================================");
         try {
             if (currentInvitado) {
                 // --- MODO EDICIÓN (PATCH) ---
@@ -455,6 +461,7 @@ function Mis_Citas() {
                             <div className="col-md-6"><Form.Control name="correo" placeholder="Correo" onChange={handleInvitadoFormChange} value={formDataInvitado.correo} required /></div>
                             <div className="col-md-6"><Form.Control name="empresa" placeholder="Empresa" onChange={handleInvitadoFormChange} value={formDataInvitado.empresa} /></div>
                             <div className="col-md-6"><Form.Control name="tipo_visitante" placeholder="Tipo (ej. Proveedor)" onChange={handleInvitadoFormChange} value={formDataInvitado.tipo_visitante} required /></div>
+                            <div className="col-md-6"><Form.Control name="matricula" placeholder="Matrícula del Vehículo" onChange={handleInvitadoFormChange} value={formDataInvitado.matricula} /></div>
                         </div>
                         <div className="mt-2 d-flex gap-2">
                             <Button type="submit" variant={currentInvitado ? "warning" : "primary"}>
@@ -472,7 +479,7 @@ function Mis_Citas() {
                     
                     <h5>Invitados Actuales ({invitadosList.length})</h5>
                     <Table striped bordered hover size="sm">
-                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Acciones</th></tr></thead>
+                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Matrícula</th><th>Acciones</th></tr></thead>
                         <tbody>
                             {invitadosList.map(inv => (
                                 <tr key={inv.id}>
@@ -480,6 +487,7 @@ function Mis_Citas() {
                                     <td>{inv.correo}</td>
                                     <td>{inv.empresa}</td>
                                     <td className="text-center">{inv.tipo_visitante}</td>
+                                    <td className="text-center">{inv.matricula || "No especificada"}</td>
                                     <td className="text-center">
                                         <Button 
                                             variant="warning" 

@@ -12,7 +12,8 @@ export default function Codigo_qr() {
         fecha: searchParams.get('fecha') || '',
         fecha_fin: searchParams.get('fecha_fin') || '',
         horario: searchParams.get('horario') || '',
-        cajon: searchParams.get('cajon') || ''
+        cajon: searchParams.get('cajon') || '',
+        matricula: searchParams.get('matricula') || ''
     };
 
     const renderContent = () => {
@@ -95,7 +96,10 @@ export default function Codigo_qr() {
                                 <span className="fw-bold text-dark">Horario: </span> 
                                 <span className="text-muted">{citaData.horario}</span>
                             </div>
-                            
+                            <div className="mb-1">
+                                <span className="fw-bold text-dark">Matrícula: </span> 
+                                <span className="text-muted">{citaData.matricula || "No especificada"}</span>
+                            </div>
                             {/* NUEVO: Destacamos el cajón con un color distinto */}
                             {citaData.cajon && (
                                 <div className="mt-3 pt-2 border-top text-center">
