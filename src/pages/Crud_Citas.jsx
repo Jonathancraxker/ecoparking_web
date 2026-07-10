@@ -23,8 +23,10 @@ const initialInvitadoForm = {
     correo: "",
     empresa: "",
     tipo_visitante: "",
+    matricula: "",
     id_cita: null
 };
+
 
 function Crud_Citas() {
     const [citas, setCitas] = useState([]);
@@ -188,6 +190,7 @@ function Crud_Citas() {
     };
     
     const handleInvitadoFormChange = (e) => {
+        console.log("Campo:", e.target.name, "Valor:", e.target.value);  // ← AGREGA ESTO
         setFormDataInvitado({ ...formDataInvitado, [e.target.name]: e.target.value });
     };
 
@@ -199,6 +202,7 @@ function Crud_Citas() {
             correo: invitado.correo,
             empresa: invitado.empresa || "",
             tipo_visitante: invitado.tipo_visitante || "",
+            matricula: invitado.matricula || "",
             id_cita: currentCita.id
         });
     };
@@ -211,6 +215,12 @@ function Crud_Citas() {
 
     const handleInvitadoSubmit = async (e) => {
         e.preventDefault();
+         // --- LOG PARA DEPURAR ---
+        console.log("=== VALOR DE MATRICULA ===");
+        console.log("formDataInvitado:", formDataInvitado);
+        console.log("matricula específica:", formDataInvitado.matricula);
+        console.log("tipo de matricula:", typeof formDataInvitado.matricula);
+        console.log("==========================");
         try {
             if (currentInvitado) {
                 // --- MODO EDICIÓN (PATCH) ---
@@ -454,6 +464,7 @@ function Crud_Citas() {
                             <div className="col-md-6"><Form.Control name="correo" placeholder="Correo" onChange={handleInvitadoFormChange} value={formDataInvitado.correo} required /></div>
                             <div className="col-md-6"><Form.Control name="empresa" placeholder="Empresa" onChange={handleInvitadoFormChange} value={formDataInvitado.empresa} /></div>
                             <div className="col-md-6"><Form.Control name="tipo_visitante" placeholder="Tipo (ej. Proveedor)" onChange={handleInvitadoFormChange} value={formDataInvitado.tipo_visitante} required /></div>
+                            <div className="col-md-6"><Form.Control name="matricula" placeholder="Matrícula del Vehículo" onChange={handleInvitadoFormChange} value={formDataInvitado.matricula} /></div>
                         </div>
                         <div className="mt-2 d-flex gap-2">
                             <Button type="submit" variant={currentInvitado ? "warning" : "primary"}>
@@ -473,7 +484,7 @@ function Crud_Citas() {
                     
                     <h5>Invitados Actuales ({invitadosList.length})</h5>
                     <Table striped bordered hover size="sm">
-                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Acciones</th></tr></thead>
+                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Matrícula</th><th>Acciones</th></tr></thead>
                         <tbody>
                             {invitadosList.map(inv => (
                                 <tr key={inv.id}>
@@ -481,6 +492,7 @@ function Crud_Citas() {
                                     <td>{inv.correo}</td>
                                     <td>{inv.empresa}</td>
                                     <td>{inv.tipo_visitante}</td>
+                                    <td>{inv.matricula || "No especificada"}</td>
                                     <td className="text-center">
                                         {/* Botón EDITAR */}
                                         <Button 
