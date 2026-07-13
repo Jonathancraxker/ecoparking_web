@@ -1,10 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 export default function Codigo_qr() {
     const [searchParams] = useSearchParams();
     const [status] = useState(() => searchParams.get('status') || 'checking');
     const [reason] = useState(() => searchParams.get('reason') || '');
+    const [invitados, setInvitados] = useState([]);
+    
+    useEffect(() => {
+        // Al cargar, intentamos obtener y parsear los invitados
+        const invParam = searchParams.get('invitados');
+        if (invParam) {
+            try {
+                const parsed = JSON.parse(decodeURIComponent(invParam));
+                setInvitados(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+                console.error("Error al parsear invitados", e);
+            }
+        }
+    }, [searchParams]);
 
     // Capturamos los datos adicionales de la URL, agregando "cajon"
     const citaData = {
@@ -12,8 +26,7 @@ export default function Codigo_qr() {
         fecha: searchParams.get('fecha') || '',
         fecha_fin: searchParams.get('fecha_fin') || '',
         horario: searchParams.get('horario') || '',
-        cajon: searchParams.get('cajon') || '',
-        matricula: searchParams.get('matricula') || ''
+        cajon: searchParams.get('cajon') || ''
     };
 
     const renderContent = () => {
@@ -30,27 +43,9 @@ export default function Codigo_qr() {
         };
 
         const configs = {
-            valido: {
-                color: 'success',
-                icon: 'bi-check-circle-fill',
-                title: 'ACCESO CONCEDIDO',
-                desc: '¡Bienvenido a EcoParking!',
-                btn: 'btn-success'
-            },
-            denegado: {
-                color: 'danger',
-                icon: 'bi-x-circle-fill',
-                title: 'ACCESO DENEGADO',
-                desc: getReasonMessage(reason),
-                btn: 'btn-danger'
-            },
-            checking: {
-                color: 'primary',
-                icon: 'spinner-border',
-                title: 'VALIDANDO...',
-                desc: 'Verificando credenciales en el sistema.',
-                btn: 'btn-primary'
-            }
+            valido: { color: 'success', icon: 'bi-check-circle-fill', title: 'ACCESO CONCEDIDO', desc: '¡Bienvenido!', btn: 'btn-success' },
+            denegado: { color: 'danger', icon: 'bi-x-circle-fill', title: 'ACCESO DENEGADO', desc: getReasonMessage(reason), btn: 'btn-danger' },
+            checking: { color: 'primary', icon: 'spinner-border', title: 'VALIDANDO...', desc: 'Verificando...', btn: 'btn-primary' }
         };
 
         const config = configs[status] || configs.denegado;
@@ -84,23 +79,35 @@ export default function Codigo_qr() {
                                 <span className="fw-bold text-dark">Motivo: </span> 
                                 <span className="text-muted">{citaData.motivo}</span>
                             </div>
-                            <div className="mb-1">
-                                <span className="fw-bold text-dark">Fecha inicio: </span> 
-                                <span className="text-muted">{citaData.fecha}</span>
-                            </div>
-                            <div className="mb-1">
-                                <span className="fw-bold text-dark">Fecha fin: </span> 
-                                <span className="text-muted">{citaData.fecha_fin}</span>
-                            </div>
+                            <p className="mb-1"><strong>Fecha:</strong></p>
+                            <p className="text-muted">{citaData.fecha} a {citaData.fecha_fin}</p>
+
                             <div className="mb-1">
                                 <span className="fw-bold text-dark">Horario: </span> 
                                 <span className="text-muted">{citaData.horario}</span>
                             </div>
-                            <div className="mb-1">
-                                <span className="fw-bold text-dark">Matrícula: </span> 
-                                <span className="text-muted">{citaData.matricula || "No especificada"}</span>
-                            </div>
-                            {/* NUEVO: Destacamos el cajón con un color distinto */}
+
+                            {/* Invitados */}
+                            <h6 className="text-uppercase text-secondary fw-bold small mb-2 border-bottom pb-1 mt-4">Invitados</h6>
+                            {invitados.length > 0 && (
+                                <div className="mt-2">
+                                    <ul className="list-unstyled mt-1">
+                                        {invitados.map((inv, index) => (
+                                            <li key={index} className="small border-bottom py-1">
+                                                <span className="text-muted"><span className="fw-bold text-dark">Nombre:</span> {inv.nombre}</span>
+                                                <br />
+                                                <span className="fw-bold">Matrícula </span>
+                                                <span className="fw-bold text-primary">{inv.matricula}</span>
+                                                <br />
+                                                <span className="text-muted"><span className="fw-bold text-dark">Empresa:</span> {inv.empresa}</span>
+                                                <br />
+                                                {/* <span className="text-muted"><span className="fw-bold text-dark">Tipo de Visitante:</span> {inv.tipo_visitante}</span> */}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {/* Lugar de Estacionamiento */}
                             {citaData.cajon && (
                                 <div className="mt-3 pt-2 border-top text-center">
                                     <span className="fw-bold text-dark d-block mb-1">Lugar de Estacionamiento: </span> 
