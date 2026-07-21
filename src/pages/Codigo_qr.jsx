@@ -52,10 +52,10 @@ export default function Codigo_qr() {
 
         return (
             <div className={`card border-0 shadow-lg text-center overflow-hidden animate__animated animate__fadeIn`}>
-                <div className={`bg-${config.color} py-2`}></div>
+                <div className={`bg-${config.color} py-1`}></div>
                 
                 <div className="card-body p-5">
-                    <div className="mb-4">
+                    <div className="mb-1">
                         {status === 'checking' ? (
                             <div className="spinner-border text-primary" style={{ width: '4rem', height: '4rem' }} role="status"></div>
                         ) : (
@@ -63,7 +63,7 @@ export default function Codigo_qr() {
                         )}
                     </div>
 
-                    <h1 className={`h2 fw-bold text-${config.color} mb-3`}>
+                    <h1 className={`h3 fw-bold text-${config.color} mb-2`}>
                         {config.title}
                     </h1>
                     
@@ -73,7 +73,7 @@ export default function Codigo_qr() {
 
                     {/* Sección de detalles: Se muestra si hay datos, sea éxito o error */}
                     {citaData.motivo && (
-                        <div className="mt-4 p-3 bg-light rounded border text-start animate__animated animate__fadeInUp">
+                        <div className="mt-4 p-3 bg-light rounded border border-secondary text-start">
                             <h6 className="text-uppercase text-secondary fw-bold small mb-2 border-bottom pb-1">Información de la Cita</h6>
                             <div className="mb-1">
                                 <span className="fw-bold text-dark">Motivo: </span> 
@@ -90,7 +90,7 @@ export default function Codigo_qr() {
                             {/* Invitados */}
                             <h6 className="text-uppercase text-secondary fw-bold small mb-2 border-bottom pb-1 mt-4">Invitados</h6>
                             {invitados.length > 0 && (
-                                <div className="mt-2">
+                                <div className="mt-2 border rounded p-2 bg-primary bg-opacity-10">
                                     <ul className="list-unstyled mt-1">
                                         {invitados.map((inv, index) => (
                                             <li key={index} className="small border-bottom py-1">
