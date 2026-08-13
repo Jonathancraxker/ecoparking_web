@@ -14,7 +14,6 @@ const initialCitaForm = {
     motivo: "",
     estado_cita: "Confirmada",
     numero_invitados: 0,
-    id_cajon: "",
     invitados: []
 };
 
@@ -25,6 +24,7 @@ const initialInvitadoForm = {
     empresa: "",
     tipo_visitante: "",
     matricula: "",
+    id_cajon: "",
     id_cita: null
 };
 
@@ -47,10 +47,15 @@ function Mis_Citas() {
     const [formDataInvitado, setFormDataInvitado] = useState(initialInvitadoForm);
     const [selectedQrUrl, setSelectedQrUrl] = useState(''); 
 
-    // --- NUEVO: Estado para saber qué invitado estamos editando ---
+    // --- Estado para saber qué invitado estamos editando ---
     const [currentInvitado, setCurrentInvitado] = useState(null);
 
-    // --- NUEVO: Estados para los cajones disponibles ---
+    // --- Estado local (NO se manda al backend): controla si el formulario está en modo "acompañante" ---
+    const [esAcompanante, setEsAcompanante] = useState(false);
+    const [selectedConductorId, setSelectedConductorId] = useState("");
+    const [cajonConductorLabel, setCajonConductorLabel] = useState("");
+
+    // --- Estados para los cajones disponibles ---
     const [cajonesDisponibles, setCajonesDisponibles] = useState([]);
     const [buscandoCajones, setBuscandoCajones] = useState(false);
 
@@ -73,40 +78,25 @@ function Mis_Citas() {
         fetchMisCitas();
     }, [axiosPrivate]);
 
-    // --- NUEVO: Escuchar cambios en fechas/horas para buscar cajones ---
-    useEffect(() => {
-        const fetchCajonesDisponibles = async () => {
-            const { fecha_inicio, fecha_fin, hora_inicio, hora_fin } = formDataCita;
-            
-            if (fecha_inicio && fecha_fin && hora_inicio && hora_fin) {
-                setBuscandoCajones(true);
-                try {
-                    // Preparamos los datos a enviar
-                    const payload = { fecha_inicio, fecha_fin, hora_inicio, hora_fin };
-                    
-                    // NUEVO: Si estamos editando, mandamos el ID de la cita actual
-                    if (currentCita) {
-                        payload.id_cita = currentCita.id;
-                    }
-
-                    const response = await axiosPrivate.post('/api/cajones/filtrar-disponibles', payload);
-                    setCajonesDisponibles(response.data);
-                    
-                    if (formDataCita.id_cajon && !response.data.find(c => c.id == formDataCita.id_cajon)) {
-                        setFormDataCita(prev => ({ ...prev, id_cajon: "" }));
-                    }
-                } catch (error) {
-                    console.error("Error al buscar cajones disponibles:", error);
-                } finally {
-                    setBuscandoCajones(false);
-                }
-            } else {
-                setCajonesDisponibles([]);
-            }
-        };
-
-        fetchCajonesDisponibles();
-    }, [formDataCita.fecha_inicio, formDataCita.fecha_fin, formDataCita.hora_inicio, formDataCita.hora_fin, currentCita, axiosPrivate]);
+    // --- Buscar cajones disponibles para la cita al abrir el modal de invitados ---
+    const fetchCajonesParaCita = async (cita) => {
+        setBuscandoCajones(true);
+        try {
+            const payload = {
+                fecha_inicio: cita.fecha_inicio,
+                fecha_fin: cita.fecha_fin,
+                hora_inicio: cita.hora_inicio,
+                hora_fin: cita.hora_fin,
+                id_cita: cita.id
+            };
+            const response = await axiosPrivate.post('/api/cajones/filtrar-disponibles', payload);
+            setCajonesDisponibles(response.data);
+        } catch (error) {
+            console.error("Error al buscar cajones disponibles:", error);
+        } finally {
+            setBuscandoCajones(false);
+        }
+    };
 
     // --- MANEJO DE MODAL DE CITA (CREAR/EDITAR) ---
     const handleShowCitaModal = (cita = null) => {
@@ -119,8 +109,7 @@ function Mis_Citas() {
                 hora_fin: cita.hora_fin || "",
                 motivo: cita.motivo || "",
                 estado_cita: cita.estado_cita || "Confirmada",
-                numero_invitados: cita.numero_invitados || 0,
-                id_cajon: cita.id_cajon || ""
+                numero_invitados: cita.numero_invitados || 0
             });
         } else {
             setFormDataCita(initialCitaForm);
@@ -130,6 +119,13 @@ function Mis_Citas() {
 
     const handleCitaFormChange = (e) => {
         setFormDataCita({ ...formDataCita, [e.target.name]: e.target.value });
+    };
+
+    // La universidad no cuenta con estacionamiento 24/7: la cita es de un solo día,
+    // así que fecha_inicio y fecha_fin siempre deben coincidir.
+    const handleFechaUnicaChange = (e) => {
+        const { value } = e.target;
+        setFormDataCita({ ...formDataCita, fecha_inicio: value, fecha_fin: value });
     };
 
     const handleCitaSubmit = async (e) => {
@@ -171,10 +167,14 @@ function Mis_Citas() {
     const handleShowInvitadoModal = async (cita) => {
         setCurrentCita(cita);
         setShowInvitadoModal(true);
-        // Reseteamos form y modo edición
+        // Reseteamos el formulario y el modo edición
         setFormDataInvitado({ ...initialInvitadoForm, id_cita: cita.id }); 
         setCurrentInvitado(null);
+        setSelectedConductorId("");
+        setCajonConductorLabel("");
+        setEsAcompanante(false);
         await fetchInvitados(cita.id); 
+        await fetchCajonesParaCita(cita);
     };
     
     const fetchInvitados = async (idCita) => {
@@ -190,54 +190,104 @@ function Mis_Citas() {
         setFormDataInvitado({ ...formDataInvitado, [e.target.name]: e.target.value });
     };
 
-    // --- NUEVO: Preparar formulario para editar invitado ---
+    // --- Preparar formulario para editar invitado ---
     const handleEditInvitado = (invitado) => {
-        setCurrentInvitado(invitado); 
+        setCurrentInvitado(invitado); // Marcamos que estamos editando
+        setSelectedConductorId("");
+        setCajonConductorLabel("");
+        setEsAcompanante(false); // al editar, siempre inicia en modo manual; el usuario puede volver a marcar "acompañante" si quiere
         setFormDataInvitado({
             nombre: invitado.nombre,
             correo: invitado.correo,
             empresa: invitado.empresa || "",
             tipo_visitante: invitado.tipo_visitante || "",
             matricula: invitado.matricula || "",
+            id_cajon: invitado.id_cajon || "",
             id_cita: currentCita.id
         });
     };
 
-    // --- NUEVO: Cancelar edición ---
+    // --- Cancelar edición de invitado ---
     const handleCancelEditInvitado = () => {
         setCurrentInvitado(null);
+        setSelectedConductorId("");
+        setCajonConductorLabel("");
+        setEsAcompanante(false);
         setFormDataInvitado({ ...initialInvitadoForm, id_cita: currentCita.id });
+    };
+
+    // --- Marcar/desmarcar "Es acompañante": limpia matrícula/cajón para que no arrastren datos incorrectos ---
+    const handleToggleAcompanante = (e) => {
+        const checked = e.target.checked;
+        setEsAcompanante(checked);
+        setSelectedConductorId("");
+        setCajonConductorLabel("");
+        setFormDataInvitado({
+            ...formDataInvitado,
+            matricula: "",
+            id_cajon: ""
+        });
+    };
+
+    // --- Cuando un acompañante elige a su conductor, copiamos matrícula y cajón ---
+    const handleSeleccionarConductor = (e) => {
+        const conductorId = e.target.value;
+        setSelectedConductorId(conductorId);
+        const conductor = invitadosList.find(inv => String(inv.id) === conductorId);
+        setFormDataInvitado({
+            ...formDataInvitado,
+            matricula: conductor ? (conductor.matricula || "") : "",
+            id_cajon: conductor ? (conductor.id_cajon || "") : ""
+        });
+        setCajonConductorLabel(
+            conductor
+                ? (conductor.numero_cajon || (conductor.id_cajon ? `Cajón #${conductor.id_cajon}` : "Sin cajón asignado"))
+                : ""
+        );
     };
 
     const handleInvitadoSubmit = async (e) => {
         e.preventDefault();
-         // --- LOG PARA DEPURAR ---
-        console.log("=== DATOS A ENVIAR AL BACKEND ===");
-        console.log(JSON.stringify(formDataInvitado, null, 2));  // ← MUESTRA EL JSON EXACTO
-        console.log("==================================");
+        const payloadInvitado = {
+            ...formDataInvitado,
+            id_cajon: formDataInvitado.id_cajon ? Number(formDataInvitado.id_cajon) : null
+        };
         try {
             if (currentInvitado) {
                 // --- MODO EDICIÓN (PATCH) ---
-                await axiosPrivate.patch(`/invitados/${currentInvitado.id}`, formDataInvitado);
+                await axiosPrivate.patch(`/invitados/${currentInvitado.id}`, payloadInvitado);
                 Swal.fire("¡Éxito!", "Invitado actualizado.", "success");
             } else {
                 // --- MODO CREACIÓN (POST) ---
-                await axiosPrivate.post('/invitados', formDataInvitado);
+                const res = await axiosPrivate.post('/invitados', payloadInvitado);
+
+                // ⚠️ El endpoint POST /invitados en el backend actual NO guarda id_cajon
+                // ni marca el cajón como "Ocupado" (solo lo hace el PATCH).
+                // Truco sin tocar el backend: si el invitado trae cajón, justo después
+                // de crearlo mandamos un PATCH con los mismos datos, para que el
+                // backend sí ejecute la lógica de ocupar el cajón.
+                const nuevoId = res.data?.id_invitado;
+                if (payloadInvitado.id_cajon && nuevoId) {
+                    await axiosPrivate.patch(`/invitados/${nuevoId}`, payloadInvitado);
+                }
+
                 Swal.fire("¡Éxito!", "Invitado agregado.", "success");
             }
-            
-            // Resetear
+
+            // Resetear formulario y recargar lista
             setFormDataInvitado({ ...initialInvitadoForm, id_cita: currentCita.id });
-            setCurrentInvitado(null);
+            setCurrentInvitado(null); // Volver a modo "Agregar"
+            setSelectedConductorId("");
+            setEsAcompanante(false);
             fetchInvitados(currentCita.id); 
-            fetchMisCitas(); 
+            fetchMisCitas(); // Recargar tabla principal
+            fetchCajonesParaCita(currentCita); // Refrescar disponibilidad de cajones
         } catch (err) {
             Swal.fire("Error", `Hubo un error al guardar el invitado.`, "error");
         }
     };
 
     const handleDeleteInvitado = async (invitadoId) => {
-        // --- CAMBIO AQUÍ: Usamos Swal en lugar de window.confirm ---
         const result = await Swal.fire({
             title: '¿Estás seguro?',
             text: "Se eliminará este invitado permanentemente.",
@@ -276,12 +326,14 @@ function Mis_Citas() {
             // Recargar datos
             fetchInvitados(currentCita.id); 
             fetchMisCitas(); 
+            fetchCajonesParaCita(currentCita); // Refrescar disponibilidad de cajones
 
         } catch (err) {
             Swal.fire("Error", `No se pudo eliminar al invitado.`, "error");
         }
     };
     
+    // --- MANEJO DE QR ---
     const handleShowQrModal = (cita) => {
         if (cita.url_validacion) {
             setSelectedQrUrl(cita.url_validacion);
@@ -290,6 +342,11 @@ function Mis_Citas() {
             Swal.fire("Error", "Esta cita no tiene un código QR asociado (url_validacion no encontrada).", "error");
         }
     };
+
+    // Cajones disponibles sin contar los que ya usan otros invitados de ESTA misma cita
+    const cajonesFiltrados = cajonesDisponibles.filter(c =>
+        !invitadosList.some(inv => inv.id_cajon === c.id && inv.id !== currentInvitado?.id)
+    );
 
     if (loading) return <div className="container p-4">Cargando mis citas...</div>;
 
@@ -323,7 +380,7 @@ function Mis_Citas() {
                             <tr key={cita.id}>
                                 <th className="text-center">{cita.id}</th>
                                 <td>{cita.motivo}</td>
-                                <td>{cita.fecha_inicio} al {cita.fecha_fin}</td>
+                                <td>{cita.fecha_inicio}</td>
                                 <td>{cita.hora_inicio} a {cita.hora_fin}</td>
                                 <td className="text-center">{cita.numero_invitados}</td>
                                 <td className="text-center">
@@ -375,53 +432,25 @@ function Mis_Citas() {
                     </Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleCitaSubmit}>
-                    {/* ... (Contenido del formulario de cita idéntico) ... */}
                     <Modal.Body>
                         <Form.Group className="mb-3">
                             <Form.Label>Motivo</Form.Label>
                             <Form.Control type="text" name="motivo" value={formDataCita.motivo} onChange={handleCitaFormChange} required />
                         </Form.Group>
-                        <div className="row">
-                            <div className="col-md-6"><Form.Group><Form.Label>Fecha Inicio</Form.Label><Form.Control type="date" name="fecha_inicio" value={formDataCita.fecha_inicio} onChange={handleCitaFormChange} /></Form.Group></div>
-                            <div className="col-md-6"><Form.Group><Form.Label>Fecha Fin</Form.Label><Form.Control type="date" name="fecha_fin" value={formDataCita.fecha_fin} onChange={handleCitaFormChange} /></Form.Group></div>
-                        </div>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Fecha</Form.Label>
+                            <Form.Control type="date" name="fecha" value={formDataCita.fecha_inicio} onChange={handleFechaUnicaChange} required />
+                        </Form.Group>
                         <div className="row mt-3">
                             <div className="col-md-6"><Form.Group><Form.Label>Hora Inicio</Form.Label><Form.Control type="time" name="hora_inicio" value={formDataCita.hora_inicio} onChange={handleCitaFormChange} /></Form.Group></div>
                             <div className="col-md-6"><Form.Group><Form.Label>Hora Fin</Form.Label><Form.Control type="time" name="hora_fin" value={formDataCita.hora_fin} onChange={handleCitaFormChange} /></Form.Group></div>
                         </div>
-                        {/* --- NUEVO: Selector de Cajones Dinámico --- */}
-                        <Form.Group className="mb-3 mt-3">
-                            <Form.Label>Lugar de Estacionamiento</Form.Label>
-                            <Form.Select 
-                                name="id_cajon" 
-                                value={formDataCita.id_cajon} 
-                                onChange={handleCitaFormChange} 
-                                required
-                                disabled={!formDataCita.fecha_inicio || !formDataCita.fecha_fin || !formDataCita.hora_inicio || !formDataCita.hora_fin || buscandoCajones}
-                            >
-                                <option value="">
-                                    {buscandoCajones 
-                                        ? "Buscando lugares disponibles..." 
-                                        : (!formDataCita.fecha_inicio || !formDataCita.fecha_fin || !formDataCita.hora_inicio || !formDataCita.hora_fin)
-                                            ? "Selecciona fechas y horas primero"
-                                            : cajonesDisponibles.length === 0
-                                                ? "No hay cajones disponibles en este horario"
-                                                : "Selecciona un cajón disponible"}
-                                </option>
-                                
-                                {cajonesDisponibles.map((cajon) => (
-                                    <option key={cajon.id} value={cajon.id}>
-                                        {cajon.numero_cajon} 
-                                    </option>
-                                ))}
-                            </Form.Select>
-                        </Form.Group>
+
                         {/* El usuario normal puede ver el estado pero no siempre debería poder cambiarlo a 'Confirmada' el mismo, depende de tu lógica de negocio. Aquí lo dejo editable. */}
                          <Form.Group className="mb-3 mt-3">
                             <Form.Label>Estado</Form.Label>
                             <Form.Select name="estado_cita" value={formDataCita.estado_cita} onChange={handleCitaFormChange}>
                                 <option value="Confirmada">Confirmada</option>
-                                {/* <option value="Confirmada">Confirmada</option> (Tal vez ocultar para usuario normal?) */}
                                 <option value="Cancelada">Cancelada</option>
                             </Form.Select>
                         </Form.Group>
@@ -447,12 +476,13 @@ function Mis_Citas() {
                 </Modal.Footer>
             </Modal>
 
-            {/* --- MODAL PARA GESTIONAR INVITADOS (CON EDICIÓN) --- */}
+            {/* --- MODAL PARA GESTIONAR INVITADOS (CON MODO ACOMPAÑANTE) --- */}
             <Modal show={showInvitadoModal} onHide={() => setShowInvitadoModal(false)} size="lg">
                 <Modal.Header closeButton>
                     <Modal.Title>Invitados de la Cita: {currentCita?.motivo}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    {/* Título dinámico del formulario */}
                     <h5>{currentInvitado ? "Editar Invitado" : "Agregar Nuevo Invitado"}</h5>
                     
                     <Form onSubmit={handleInvitadoSubmit} className="mb-4 p-3 bg-light rounded">
@@ -461,12 +491,102 @@ function Mis_Citas() {
                             <div className="col-md-6"><Form.Control name="correo" placeholder="Correo" onChange={handleInvitadoFormChange} value={formDataInvitado.correo} required /></div>
                             <div className="col-md-6"><Form.Control name="empresa" placeholder="Empresa" onChange={handleInvitadoFormChange} value={formDataInvitado.empresa} /></div>
                             <div className="col-md-6"><Form.Control name="tipo_visitante" placeholder="Tipo (ej. Proveedor)" onChange={handleInvitadoFormChange} value={formDataInvitado.tipo_visitante} required /></div>
-                            <div className="col-md-6"><Form.Control name="matricula" placeholder="Matrícula del Vehículo" onChange={handleInvitadoFormChange} value={formDataInvitado.matricula} /></div>
+
+                            {/* --- Checkbox: ¿Es acompañante? --- */}
+                            <div className="col-12">
+                                <Form.Check
+                                    type="checkbox"
+                                    id="es_acompanante"
+                                    label="Es acompañante (comparte vehículo y cajón con otro invitado)"
+                                    checked={esAcompanante}
+                                    onChange={handleToggleAcompanante}
+                                />
+                            </div>
+
+                            {/* --- CASO NORMAL / CONDUCTOR: escribe su matrícula y elige un cajón disponible --- */}
+                            {!esAcompanante && (
+                                <>
+                                    <div className="col-md-6">
+                                        <Form.Control
+                                            name="matricula"
+                                            placeholder="Matrícula del Vehículo"
+                                            onChange={handleInvitadoFormChange}
+                                            value={formDataInvitado.matricula}
+                                        />
+                                    </div>
+                                    <div className="col-md-6">
+                                        <Form.Select
+                                            name="id_cajon"
+                                            value={formDataInvitado.id_cajon}
+                                            onChange={handleInvitadoFormChange}
+                                            disabled={buscandoCajones}
+                                        >
+                                            <option value="">
+                                                {buscandoCajones ? "Buscando cajones..." : "Sin cajón (llegó a pie)"}
+                                            </option>
+                                            {cajonesFiltrados.map(cajon => (
+                                                <option key={cajon.id} value={cajon.id}>
+                                                    {cajon.numero_cajon}
+                                                </option>
+                                            ))}
+                                            {currentInvitado?.id_cajon && !cajonesFiltrados.some(c => c.id === currentInvitado.id_cajon) && (
+                                                <option value={currentInvitado.id_cajon}>
+                                                    {currentInvitado.numero_cajon || `Cajón #${currentInvitado.id_cajon}`} (actual)
+                                                </option>
+                                            )}
+                                        </Form.Select>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* --- CASO ACOMPAÑANTE: elige de la lista de invitados con vehículo ya registrado en esta cita --- */}
+                            {esAcompanante && (
+                                <>
+                                    <div className="col-md-12">
+                                        <Form.Select
+                                            value={selectedConductorId}
+                                            onChange={handleSeleccionarConductor}
+                                            required
+                                        >
+                                            <option value="">Selecciona al conductor que acompaña...</option>
+                                            {invitadosList
+                                                .filter(inv => inv.matricula && inv.id !== currentInvitado?.id)
+                                                .map(conductor => (
+                                                    <option key={conductor.id} value={conductor.id}>
+                                                        {conductor.nombre} — {conductor.matricula}
+                                                    </option>
+                                                ))}
+                                        </Form.Select>
+                                        {invitadosList.filter(inv => inv.matricula).length === 0 && (
+                                            <Form.Text className="text-danger">
+                                                Todavía no hay ningún invitado con vehículo registrado en esta cita. Agrega primero al conductor.
+                                            </Form.Text>
+                                        )}
+                                    </div>
+                                    <div className="col-md-6">
+                                        <Form.Label className="small text-muted mb-1">Matrícula (copiada del conductor)</Form.Label>
+                                        <Form.Control value={formDataInvitado.matricula} disabled readOnly />
+                                    </div>
+                                    <div className="col-md-6">
+                                        <Form.Label className="small text-muted mb-1">Cajón (copiado del conductor)</Form.Label>
+                                        <Form.Control
+                                            value={
+                                                cajonesDisponibles.find(c => c.id === formDataInvitado.id_cajon)?.numero_cajon
+                                                || (formDataInvitado.id_cajon ? `Cajón #${formDataInvitado.id_cajon}` : "Sin cajón")
+                                            }
+                                            disabled
+                                            readOnly
+                                        />
+                                    </div>
+                                </>
+                            )}
                         </div>
                         <div className="mt-2 d-flex gap-2">
                             <Button type="submit" variant={currentInvitado ? "warning" : "primary"}>
                                 {currentInvitado ? "Actualizar Invitado" : "Agregar Invitado"}
                             </Button>
+                            
+                            {/* Botón Cancelar solo si estamos editando */}
                             {currentInvitado && (
                                 <Button variant="secondary" onClick={handleCancelEditInvitado}>
                                     Cancelar Edición
@@ -479,16 +599,18 @@ function Mis_Citas() {
                     
                     <h5>Invitados Actuales ({invitadosList.length})</h5>
                     <Table striped bordered hover size="sm">
-                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Matrícula</th><th>Acciones</th></tr></thead>
+                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Matrícula</th><th>Cajón</th><th>Acciones</th></tr></thead>
                         <tbody>
                             {invitadosList.map(inv => (
                                 <tr key={inv.id}>
                                     <td>{inv.nombre}</td>
                                     <td>{inv.correo}</td>
                                     <td>{inv.empresa}</td>
-                                    <td className="text-center">{inv.tipo_visitante}</td>
-                                    <td className="text-center">{inv.matricula || "No especificada"}</td>
+                                    <td>{inv.tipo_visitante}</td>
+                                    <td>{inv.matricula || "No especificada"}</td>
+                                    <td className="text-center">{inv.numero_cajon || (inv.id_cajon ? `#${inv.id_cajon}` : "—")}</td>
                                     <td className="text-center">
+                                        {/* Botón EDITAR */}
                                         <Button 
                                             variant="warning" 
                                             size="sm" 
@@ -497,6 +619,7 @@ function Mis_Citas() {
                                         >
                                             <i className="bi bi-pencil-fill"></i>
                                         </Button>
+                                        {/* Botón ELIMINAR */}
                                         <Button 
                                             variant="danger" 
                                             size="sm" 

@@ -101,13 +101,15 @@ export default function Codigo_qr() {
                                                 <br />
                                                 <span className="text-muted"><span className="fw-bold text-dark">Empresa:</span> {inv.empresa}</span>
                                                 <br />
+                                                <span className="text-muted"><span className="fw-bold text-dark">Cajon:</span> {inv.numero_cajon}</span>
+                                                <br />
                                                 {/* <span className="text-muted"><span className="fw-bold text-dark">Tipo de Visitante:</span> {inv.tipo_visitante}</span> */}
                                             </li>
                                         ))}
                                     </ul>
                                 </div>
                             )}
-                            {/* Lugar de Estacionamiento */}
+                            {/* Lugar de Estacionamiento
                             {citaData.cajon && (
                                 <div className="mt-3 pt-2 border-top text-center">
                                     <span className="fw-bold text-dark d-block mb-1">Lugar de Estacionamiento: </span> 
@@ -115,7 +117,7 @@ export default function Codigo_qr() {
                                         {citaData.cajon}
                                     </span>
                                 </div>
-                            )}
+                            )} */}
                         </div>
                     )}
                 </div>
