@@ -82,6 +82,12 @@ const Sidebar = () => {
                                 Reportes
                             </Link>
                         </Nav.Item>
+                        <Nav.Item>
+                            <Link to="/terminos" className={`nav-link link-primary text-white`}>
+                                <i className="bi bi-file-text me-2"></i>
+                                Términos
+                            </Link>
+                        </Nav.Item>
                     </>
                 </Nav>
             </div>

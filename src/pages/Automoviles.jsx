@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import mapaUteq from '../assets/images/mapa-uteq-2.png';
 import { getTodosCajones } from '../api/cajones';
 
@@ -49,24 +50,36 @@ export default function Automoviles() {
   };
 
   // Cambiar handleZonaClick por handleCajonClick
-    const handleCajonClick = (cajon) => {
-      // Obtener la zona del cajón (primera letra del número)
-      const zona = cajon.numero_cajon.charAt(0);
-      
-      // Verificar el estado del cajón
-      if (cajon.estado === 'Ocupado') {
-        alert('El estacionamiento actualmente se encuentra ocupado');
-        return;
-      }
-      
-      if (cajon.estado === 'Mantenimiento') {
-        alert('Lo sentimos, por el momento este cajón se encuentra en mantenimiento');
-        return;
-      }
-      
-      // Si está disponible, mostrar la ruta de su zona
-      setZonaSeleccionada(zona);
-    };
+  const handleCajonClick = (cajon) => {
+    // Obtener la zona del cajón (primera letra del número)
+    const zona = cajon.numero_cajon.charAt(0);
+    
+    // Verificar el estado del cajón con SweetAlert2
+    if (cajon.estado === 'Ocupado') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Cajón Ocupado',
+        text: 'El estacionamiento actualmente se encuentra ocupado.',
+        confirmButtonColor: '#e74c3c', // Rojo como en tu getEstadoColor
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+    
+    if (cajon.estado === 'Mantenimiento') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'En Mantenimiento',
+        text: 'Lo sentimos, por el momento este cajón se encuentra en mantenimiento.',
+        confirmButtonColor: '#f1c40f', // Amarillo como en tu getEstadoColor
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+    
+    // Si está disponible, mostrar la ruta de su zona
+    setZonaSeleccionada(zona);
+  };
 
   const limpiarRuta = () => {
     setZonaSeleccionada(null);

@@ -14,7 +14,7 @@ import Reportes from "./pages/Reportes";
 import Vehiculos from "./pages/Automoviles";
 import EstadoCajones from "./pages/EstadoCajones";
 import Crud_Cajones from "./pages/Crud_Cajones";
-
+import Terminos_y_Condiciones from "./pages/Terminos_y_Condiciones";
 import Estadisticas from "./pages/Estadisticas";
 
 function App() {
@@ -42,6 +42,9 @@ function App() {
             <Route path="/crud_cajones" element={<Crud_Cajones />} />
             <Route path="/reportes" element={<Reportes />} />
           </Route>
+        </Route>
+        <Route element={<ProtectedRoute />}>
+          <Route path="/terminos" element={<Terminos_y_Condiciones />} />
         </Route>
         {/* RUTA 404 */}
         <Route path="*" element={<Not_Found />} />
