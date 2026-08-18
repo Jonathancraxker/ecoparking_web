@@ -302,7 +302,7 @@ export default function Automoviles() {
       }}>
         <iframe 
           title="Ubicación UTEQ"
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3735.456!2d-100.4048!3d20.5794!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x842d177c5b8a8b3b%3A0x4b8c8c8c8c8c8c8c!2sUniversidad%20Tecnol%C3%B3gica%20de%20Quer%C3%A9taro!5e0!3m2!1ses!2smx!4v1700000000000!5m2!1ses!2smx"
+          src="https://maps.google.com/maps?q=Universidad+Tecnológica+de+Querétaro&t=&z=15&ie=UTF8&iwloc=&output=embed"
           width="100%"
           height="300"
           style={{ border: 0 }}
