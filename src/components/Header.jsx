@@ -4,10 +4,9 @@ import Logo_ecoparking from "../assets/images/ecoparking.jpg";
 import Logo_uteq from "../assets/images/Logo_uteq.png";
 
 const Header = () => {
-    const {logout} = useAuth();
+    const { user, logout } = useAuth();
 
   return (
-    // navbar-dark y bg-dark ya están bien
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark border-bottom sticky-top">
       <div className="container-fluid px-4">
         <Link to="/" className="navbar-brand">
@@ -33,19 +32,17 @@ const Header = () => {
 
         <div className="collapse navbar-collapse" id="navbarContent">
 
-          {/* Perfil (Derecha) */}
           <div className="ms-auto d-flex align-items-center">
             <div className="dropdown">
               <a
                 href="#"
-                // Aquí quitamos text-dark y ponemos text-light para que el icono de flecha del dropdown sea blanco
                 className="d-flex align-items-center text-decoration-none dropdown-toggle text-light"
                 id="userDropdown"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
                 <span className="me-3 d-none d-md-block fw-medium">
-                  Usuario
+                  {user?.nombre?.split(' ')[0] || "Usuario"}
                 </span>
                 <div className="avatar-container">
                     <img
@@ -57,7 +54,6 @@ const Header = () => {
                 </div>
               </a>
 
-              {/* El menú desplegable (dropdown-menu) es blanco por defecto, por lo que los iconos negros se verán bien */}
               <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userDropdown">
                 <li><Link className="dropdown-item" to="/profile"><i className="bi bi-person me-2"></i>Perfil</Link></li>
                 <li><Link className="dropdown-item" to="/settings"><i className="bi bi-gear me-2"></i>Configuración</Link></li>
