@@ -353,7 +353,7 @@ function Mis_Citas() {
     return (
         <div className="container-fluid p-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h2>Mis Citas (Usuario loggeado)</h2>
+                <h2>Mis Citas</h2>
                 <Button variant="primary" onClick={() => handleShowCitaModal(null)} className="d-flex align-items-center gap-2">
                     <i className="bi bi-plus-circle"></i>
                     Registrar Cita
@@ -404,7 +404,7 @@ function Mis_Citas() {
                                             QR
                                         </button>
                                         <button onClick={() => handleShowCitaModal(cita)} className="btn btn-warning btn-sm" title="Editar Cita">
-                                            <i className="bi bi-pencil-fill"></i> Editar
+                                            <i className="bi bi-pencil-fill"></i> Edit
                                         </button>
                                         <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm" title="Gestionar Invitados">
                                             <i className="bi bi-people-fill m-1"></i> Invitados
@@ -510,6 +510,8 @@ function Mis_Citas() {
                                         <Form.Control
                                             name="matricula"
                                             placeholder="Matrícula del Vehículo"
+                                            minLength={7}
+                                            maxLength={9}   
                                             onChange={handleInvitadoFormChange}
                                             value={formDataInvitado.matricula}
                                         />
