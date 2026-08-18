@@ -41,7 +41,7 @@ export default function Terminos_y_Condiciones() {
                             </p>
 
                             <div className="text-center mt-5">
-                                <Link to="/mis_citas" className="btn btn-primary px-4">
+                                <Link to="/home" className="btn btn-primary px-4">
                                     <i className="bi bi-arrow-left me-2"></i> Volver a la Aplicación
                                 </Link>
                             </div>

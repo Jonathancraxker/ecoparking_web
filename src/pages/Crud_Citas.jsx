@@ -34,6 +34,8 @@ function Crud_Citas() {
     const [error, setError] = useState(null);
     const axiosPrivate = useAxiosPrivate();
     
+    const [todosLosCajones, setTodosLosCajones] = useState([]);
+    
     // --- Estados para los Modales ---
     const [showCitaModal, setShowCitaModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -77,9 +79,28 @@ function Crud_Citas() {
         }
     };
 
+    // --- NUEVO: Cargar el catálogo completo de cajones para traducir IDs a Nombres ---
+    const fetchTodosLosCajones = async () => {
+        try {
+            const response = await axiosPrivate.get('/api/cajones');
+            setTodosLosCajones(response.data);
+        } catch (error) {
+            console.error("Error al obtener el catálogo de cajones:", error);
+        }
+    };
+
     useEffect(() => {
         fetchCitas();
+        fetchTodosLosCajones();
     }, [axiosPrivate]);
+
+    // --- Función Helper para traducir ID a Nombre de Cajón ---
+    const getNombreCajon = (idCajon) => {
+        if (!idCajon) return "—";
+        // Buscamos el cajón en el catálogo completo
+        const cajonEncontrado = todosLosCajones.find(c => c.id === Number(idCajon));
+        return cajonEncontrado ? cajonEncontrado.numero_cajon : `Cajón #${idCajon}`;
+    };
 
     // --- Buscar cajones disponibles para la cita al abrir el modal de invitados ---
     const fetchCajonesParaCita = async (cita) => {
@@ -242,10 +263,9 @@ function Crud_Citas() {
             matricula: conductor ? (conductor.matricula || "") : "",
             id_cajon: conductor ? (conductor.id_cajon || "") : ""
         });
+        // Usamos nuestro Helper para mostrar el nombre del cajón correctamente
         setCajonConductorLabel(
-            conductor
-                ? (conductor.numero_cajon || (conductor.id_cajon ? `Cajón #${conductor.id_cajon}` : "Sin cajón asignado"))
-                : ""
+            conductor ? getNombreCajon(conductor.id_cajon) : ""
         );
     };
 
@@ -264,11 +284,6 @@ function Crud_Citas() {
                 // --- MODO CREACIÓN (POST) ---
                 const res = await axiosPrivate.post('/invitados', payloadInvitado);
 
-                // ⚠️ El endpoint POST /invitados en el backend actual NO guarda id_cajon
-                // ni marca el cajón como "Ocupado" (solo lo hace el PATCH).
-                // Truco sin tocar el backend: si el invitado trae cajón, justo después
-                // de crearlo mandamos un PATCH con los mismos datos, para que el
-                // backend sí ejecute la lógica de ocupar el cajón.
                 const nuevoId = res.data?.id_invitado;
                 if (payloadInvitado.id_cajon && nuevoId) {
                     await axiosPrivate.patch(`/invitados/${nuevoId}`, payloadInvitado);
@@ -411,7 +426,7 @@ function Crud_Citas() {
                                             <i className="bi bi-pencil-fill"></i> Edit
                                         </button>
                                         <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm" title="Gestionar Invitados">
-                                            <i className="bi bi-people-fill m-1"></i> Invitados
+                                            <i className="bi bi-people-fill m-1"></i> Inv
                                         </button>
                                         <button onClick={() => handleShowDeleteModal(cita)} className="btn btn-danger btn-sm" title="Eliminar Cita">
                                             <i className="bi bi-trash-fill"></i>
@@ -481,7 +496,6 @@ function Crud_Citas() {
                     <Modal.Title>Invitados de la Cita: {currentCita?.motivo}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {/* Título dinámico del formulario */}
                     <h5>{currentInvitado ? "Editar Invitado" : "Agregar Nuevo Invitado"}</h5>
                     
                     <Form onSubmit={handleInvitadoSubmit} className="mb-4 p-3 bg-light rounded">
@@ -510,7 +524,7 @@ function Crud_Citas() {
                                             name="matricula"
                                             placeholder="Matrícula del Vehículo"
                                             minLength={7}
-                                            maxLength={9}
+                                            maxLength={9}   
                                             onChange={handleInvitadoFormChange}
                                             value={formDataInvitado.matricula}
                                         />
@@ -532,7 +546,7 @@ function Crud_Citas() {
                                             ))}
                                             {currentInvitado?.id_cajon && !cajonesFiltrados.some(c => c.id === currentInvitado.id_cajon) && (
                                                 <option value={currentInvitado.id_cajon}>
-                                                    {currentInvitado.numero_cajon || `Cajón #${currentInvitado.id_cajon}`} (actual)
+                                                    {getNombreCajon(currentInvitado.id_cajon)} (actual)
                                                 </option>
                                             )}
                                         </Form.Select>
@@ -573,7 +587,7 @@ function Crud_Citas() {
                                         <Form.Control
                                             value={
                                                 cajonesDisponibles.find(c => c.id === formDataInvitado.id_cajon)?.numero_cajon
-                                                || (formDataInvitado.id_cajon ? `Cajón #${formDataInvitado.id_cajon}` : "Sin cajón")
+                                                || (formDataInvitado.id_cajon ? getNombreCajon(formDataInvitado.id_cajon) : "Sin cajón")
                                             }
                                             disabled
                                             readOnly
@@ -609,7 +623,10 @@ function Crud_Citas() {
                                     <td>{inv.empresa}</td>
                                     <td>{inv.tipo_visitante}</td>
                                     <td>{inv.matricula || "No especificada"}</td>
-                                    <td className="text-center">{inv.numero_cajon || (inv.id_cajon ? `#${inv.id_cajon}` : "—")}</td>
+                                    
+                                    {/* AQUI APLICAMOS LA FUNCIÓN PARA MOSTRAR EL NOMBRE DEL CAJÓN */}
+                                    <td className="text-center">{inv.numero_cajon || getNombreCajon(inv.id_cajon)}</td>
+                                    
                                     <td className="text-center">
                                         {/* Botón EDITAR */}
                                         <Button 

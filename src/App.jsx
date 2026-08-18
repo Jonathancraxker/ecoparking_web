@@ -16,6 +16,7 @@ import EstadoCajones from "./pages/EstadoCajones";
 import Crud_Cajones from "./pages/Crud_Cajones";
 import Terminos_y_Condiciones from "./pages/Terminos_y_Condiciones";
 import Estadisticas from "./pages/Estadisticas";
+import Home from "./pages/Home";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/autos" element={<Vehiculos />} />
             <Route path="/estado_cajones" element={<EstadoCajones />} />
             <Route path="/estadisticas" element={<Estadisticas />} />
+            <Route path="/home" element={<Home />} />
           </Route>
           {/* Para acciones que solo realiza el usuario Juca */}
           <Route element={<Admin_Route />}>

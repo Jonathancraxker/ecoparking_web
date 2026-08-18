@@ -17,8 +17,8 @@ const Admin_Route = () => {
   // 3. Si está logueado pero no es Admin (o Juca, si lo necesitas)
   //    Verificamos que 'user' exista antes de leerlo
   if (user && user.tipo_usuario !== "Juca") {
-    // Si no es admin, lo mandamos a su perfil, no al login
-    return <Navigate to="/profile" replace />;
+    // Si no es admin, lo mandamos al home, no al login
+    return <Navigate to="/home" replace />;
   }
 
   // 4. Si es Admin, le mostramos las rutas anidadas

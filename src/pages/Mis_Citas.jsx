@@ -34,6 +34,8 @@ function Mis_Citas() {
     const [error, setError] = useState(null);
     const axiosPrivate = useAxiosPrivate();
     
+    const [todosLosCajones, setTodosLosCajones] = useState([]);
+    
     // --- Estados para los Modales ---
     const [showCitaModal, setShowCitaModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -50,7 +52,7 @@ function Mis_Citas() {
     // --- Estado para saber qué invitado estamos editando ---
     const [currentInvitado, setCurrentInvitado] = useState(null);
 
-    // --- Estado local (NO se manda al backend): controla si el formulario está en modo "acompañante" ---
+    // --- Estado local: controla si el formulario está en modo "acompañante" ---
     const [esAcompanante, setEsAcompanante] = useState(false);
     const [selectedConductorId, setSelectedConductorId] = useState("");
     const [cajonConductorLabel, setCajonConductorLabel] = useState("");
@@ -74,9 +76,28 @@ function Mis_Citas() {
         }
     };
 
+    // --- NUEVO: Cargar el catálogo completo de cajones para traducir IDs a Nombres ---
+    const fetchTodosLosCajones = async () => {
+        try {
+            const response = await axiosPrivate.get('/api/cajones');
+            setTodosLosCajones(response.data);
+        } catch (error) {
+            console.error("Error al obtener el catálogo de cajones:", error);
+        }
+    };
+
     useEffect(() => {
         fetchMisCitas();
+        fetchTodosLosCajones(); // Lo llamamos al cargar el componente
     }, [axiosPrivate]);
+
+    // --- Función Helper para traducir ID a Nombre de Cajón ---
+    const getNombreCajon = (idCajon) => {
+        if (!idCajon) return "—";
+        // Buscamos el cajón en el catálogo completo
+        const cajonEncontrado = todosLosCajones.find(c => c.id === Number(idCajon));
+        return cajonEncontrado ? cajonEncontrado.numero_cajon : `Cajón #${idCajon}`;
+    };
 
     // --- Buscar cajones disponibles para la cita al abrir el modal de invitados ---
     const fetchCajonesParaCita = async (cita) => {
@@ -121,8 +142,6 @@ function Mis_Citas() {
         setFormDataCita({ ...formDataCita, [e.target.name]: e.target.value });
     };
 
-    // La universidad no cuenta con estacionamiento 24/7: la cita es de un solo día,
-    // así que fecha_inicio y fecha_fin siempre deben coincidir.
     const handleFechaUnicaChange = (e) => {
         const { value } = e.target;
         setFormDataCita({ ...formDataCita, fecha_inicio: value, fecha_fin: value });
@@ -167,7 +186,6 @@ function Mis_Citas() {
     const handleShowInvitadoModal = async (cita) => {
         setCurrentCita(cita);
         setShowInvitadoModal(true);
-        // Reseteamos el formulario y el modo edición
         setFormDataInvitado({ ...initialInvitadoForm, id_cita: cita.id }); 
         setCurrentInvitado(null);
         setSelectedConductorId("");
@@ -192,10 +210,10 @@ function Mis_Citas() {
 
     // --- Preparar formulario para editar invitado ---
     const handleEditInvitado = (invitado) => {
-        setCurrentInvitado(invitado); // Marcamos que estamos editando
+        setCurrentInvitado(invitado); 
         setSelectedConductorId("");
         setCajonConductorLabel("");
-        setEsAcompanante(false); // al editar, siempre inicia en modo manual; el usuario puede volver a marcar "acompañante" si quiere
+        setEsAcompanante(false); 
         setFormDataInvitado({
             nombre: invitado.nombre,
             correo: invitado.correo,
@@ -216,7 +234,6 @@ function Mis_Citas() {
         setFormDataInvitado({ ...initialInvitadoForm, id_cita: currentCita.id });
     };
 
-    // --- Marcar/desmarcar "Es acompañante": limpia matrícula/cajón para que no arrastren datos incorrectos ---
     const handleToggleAcompanante = (e) => {
         const checked = e.target.checked;
         setEsAcompanante(checked);
@@ -229,7 +246,6 @@ function Mis_Citas() {
         });
     };
 
-    // --- Cuando un acompañante elige a su conductor, copiamos matrícula y cajón ---
     const handleSeleccionarConductor = (e) => {
         const conductorId = e.target.value;
         setSelectedConductorId(conductorId);
@@ -239,10 +255,10 @@ function Mis_Citas() {
             matricula: conductor ? (conductor.matricula || "") : "",
             id_cajon: conductor ? (conductor.id_cajon || "") : ""
         });
+        
+        // Usamos nuestro Helper para mostrar el nombre del cajón correctamente
         setCajonConductorLabel(
-            conductor
-                ? (conductor.numero_cajon || (conductor.id_cajon ? `Cajón #${conductor.id_cajon}` : "Sin cajón asignado"))
-                : ""
+            conductor ? getNombreCajon(conductor.id_cajon) : ""
         );
     };
 
@@ -254,34 +270,24 @@ function Mis_Citas() {
         };
         try {
             if (currentInvitado) {
-                // --- MODO EDICIÓN (PATCH) ---
                 await axiosPrivate.patch(`/invitados/${currentInvitado.id}`, payloadInvitado);
                 Swal.fire("¡Éxito!", "Invitado actualizado.", "success");
             } else {
-                // --- MODO CREACIÓN (POST) ---
                 const res = await axiosPrivate.post('/invitados', payloadInvitado);
-
-                // ⚠️ El endpoint POST /invitados en el backend actual NO guarda id_cajon
-                // ni marca el cajón como "Ocupado" (solo lo hace el PATCH).
-                // Truco sin tocar el backend: si el invitado trae cajón, justo después
-                // de crearlo mandamos un PATCH con los mismos datos, para que el
-                // backend sí ejecute la lógica de ocupar el cajón.
                 const nuevoId = res.data?.id_invitado;
                 if (payloadInvitado.id_cajon && nuevoId) {
                     await axiosPrivate.patch(`/invitados/${nuevoId}`, payloadInvitado);
                 }
-
                 Swal.fire("¡Éxito!", "Invitado agregado.", "success");
             }
 
-            // Resetear formulario y recargar lista
             setFormDataInvitado({ ...initialInvitadoForm, id_cita: currentCita.id });
-            setCurrentInvitado(null); // Volver a modo "Agregar"
+            setCurrentInvitado(null); 
             setSelectedConductorId("");
             setEsAcompanante(false);
             fetchInvitados(currentCita.id); 
-            fetchMisCitas(); // Recargar tabla principal
-            fetchCajonesParaCita(currentCita); // Refrescar disponibilidad de cajones
+            fetchMisCitas(); 
+            fetchCajonesParaCita(currentCita); 
         } catch (err) {
             Swal.fire("Error", `Hubo un error al guardar el invitado.`, "error");
         }
@@ -299,35 +305,19 @@ function Mis_Citas() {
             cancelButtonText: 'Cancelar'
         });
 
-        // Si el usuario presiona "Cancelar", detenemos la función
         if (!result.isConfirmed) return;
 
         try {
             await axiosPrivate.delete(`/invitados/${invitadoId}`);
-            
-            // Mensaje de éxito (Toast pequeño en la esquina)
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            });
-            Toast.fire({
-                icon: 'success',
-                title: 'Invitado eliminado correctamente'
-            });
+            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+            Toast.fire({ icon: 'success', title: 'Invitado eliminado correctamente' });
 
-            // Si estábamos editando el invitado que borramos, cancelar edición
             if (currentInvitado && currentInvitado.id === invitadoId) {
                 handleCancelEditInvitado();
             }
-            
-            // Recargar datos
             fetchInvitados(currentCita.id); 
             fetchMisCitas(); 
-            fetchCajonesParaCita(currentCita); // Refrescar disponibilidad de cajones
-
+            fetchCajonesParaCita(currentCita); 
         } catch (err) {
             Swal.fire("Error", `No se pudo eliminar al invitado.`, "error");
         }
@@ -343,7 +333,6 @@ function Mis_Citas() {
         }
     };
 
-    // Cajones disponibles sin contar los que ya usan otros invitados de ESTA misma cita
     const cajonesFiltrados = cajonesDisponibles.filter(c =>
         !invitadosList.some(inv => inv.id_cajon === c.id && inv.id !== currentInvitado?.id)
     );
@@ -407,7 +396,7 @@ function Mis_Citas() {
                                             <i className="bi bi-pencil-fill"></i> Edit
                                         </button>
                                         <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm" title="Gestionar Invitados">
-                                            <i className="bi bi-people-fill m-1"></i> Invitados
+                                            <i className="bi bi-people-fill m-1"></i> Inv
                                         </button>
                                         <button onClick={() => handleShowDeleteModal(cita)} className="btn btn-danger btn-sm" title="Eliminar Cita">
                                             <i className="bi bi-trash-fill"></i>
@@ -446,7 +435,6 @@ function Mis_Citas() {
                             <div className="col-md-6"><Form.Group><Form.Label>Hora Fin</Form.Label><Form.Control type="time" name="hora_fin" value={formDataCita.hora_fin} onChange={handleCitaFormChange} /></Form.Group></div>
                         </div>
 
-                        {/* El usuario normal puede ver el estado pero no siempre debería poder cambiarlo a 'Confirmada' el mismo, depende de tu lógica de negocio. Aquí lo dejo editable. */}
                          <Form.Group className="mb-3 mt-3">
                             <Form.Label>Estado</Form.Label>
                             <Form.Select name="estado_cita" value={formDataCita.estado_cita} onChange={handleCitaFormChange}>
@@ -482,7 +470,6 @@ function Mis_Citas() {
                     <Modal.Title>Invitados de la Cita: {currentCita?.motivo}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    {/* Título dinámico del formulario */}
                     <h5>{currentInvitado ? "Editar Invitado" : "Agregar Nuevo Invitado"}</h5>
                     
                     <Form onSubmit={handleInvitadoSubmit} className="mb-4 p-3 bg-light rounded">
@@ -533,7 +520,7 @@ function Mis_Citas() {
                                             ))}
                                             {currentInvitado?.id_cajon && !cajonesFiltrados.some(c => c.id === currentInvitado.id_cajon) && (
                                                 <option value={currentInvitado.id_cajon}>
-                                                    {currentInvitado.numero_cajon || `Cajón #${currentInvitado.id_cajon}`} (actual)
+                                                    {getNombreCajon(currentInvitado.id_cajon)} (actual)
                                                 </option>
                                             )}
                                         </Form.Select>
@@ -574,7 +561,7 @@ function Mis_Citas() {
                                         <Form.Control
                                             value={
                                                 cajonesDisponibles.find(c => c.id === formDataInvitado.id_cajon)?.numero_cajon
-                                                || (formDataInvitado.id_cajon ? `Cajón #${formDataInvitado.id_cajon}` : "Sin cajón")
+                                                || (formDataInvitado.id_cajon ? getNombreCajon(formDataInvitado.id_cajon) : "Sin cajón")
                                             }
                                             disabled
                                             readOnly
@@ -610,7 +597,10 @@ function Mis_Citas() {
                                     <td>{inv.empresa}</td>
                                     <td>{inv.tipo_visitante}</td>
                                     <td>{inv.matricula || "No especificada"}</td>
-                                    <td className="text-center">{inv.numero_cajon || (inv.id_cajon ? `#${inv.id_cajon}` : "—")}</td>
+                                    
+                                    {/* AQUI APLICAMOS LA FUNCIÓN PARA MOSTRAR EL NOMBRE DEL CAJÓN */}
+                                    <td className="text-center">{inv.numero_cajon || getNombreCajon(inv.id_cajon)}</td>
+                                    
                                     <td className="text-center">
                                         {/* Botón EDITAR */}
                                         <Button 
