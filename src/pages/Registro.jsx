@@ -126,7 +126,8 @@ function Registro() {
                     type="text" id="codigo" name="codigo" required 
                     value={formData.codigo} onChange={handleChange} 
                     className="form-control custom-input" 
-                    placeholder="Código (Ej. ADM123)" 
+                    placeholder="Código (Ej. PRO162)" 
+                    minLength="6" maxLength="6"
                   />
                 </div>
               </div>

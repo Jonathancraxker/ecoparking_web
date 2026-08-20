@@ -77,7 +77,16 @@ export default function Home() {
       color: 'btn-primary',
       link: '/estadisticas',
       badge: 'Análisis',
-      roles: ['Juca']
+      roles: ['Juca', 'Administrativo', 'Profesor']
+    },
+    {
+      title: 'Reportes',
+      description: 'Genera reportes, visualiza estadísticas, accesos y ocupación del estacionamiento.',
+      icon: 'bi-file-earmark-bar-graph',
+      color: 'btn-primary',
+      link: '/reportes',
+      badge: 'Análisis',
+      roles: ['Juca', 'Administrativo', 'Profesor']
     },
     {
       title: 'Términos de Uso',

@@ -90,7 +90,7 @@ function Login() {
                                 value={codigo}
                                 onChange={(e) => setCodigo(e.target.value)}
                                 className="form-control custom-input" 
-                                placeholder="Código de acceso (Ej. ADM123)"
+                                placeholder="Código de acceso (Ej. PRO123)"
                             />
 
                             {/* <div className="text-center mt-2 mb-4">

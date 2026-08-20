@@ -641,6 +641,7 @@ function Mis_Citas() {
                     <p className="mt-2 small text-muted">{selectedQrUrl}</p>
                 </Modal.Body>
                 <Modal.Footer>
+                    <h3 className="text-center w-100 text-bold">Escanéame</h3>
                     <Button variant="secondary" onClick={() => setShowQrModal(false)}>
                         Cerrar
                     </Button>

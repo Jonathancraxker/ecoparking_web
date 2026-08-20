@@ -43,7 +43,7 @@ export default function Estadisticas() {
 
     return (
         <div className="container-fluid p-4">
-            <h2 className="mb-4 text-dark"><i className="bi bi-graph-up me-2"></i>Dashboard - EcoParking</h2>
+            <h2 className="mb-4 text-dark"><i className="bi bi-graph-up me-2"></i>Estadísticas</h2>
 
             {/* --- SECCIÓN 1: TARJETAS DE KPIs (4 columnas) --- */}
             <div className="row mb-4">

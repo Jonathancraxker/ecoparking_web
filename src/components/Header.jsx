@@ -56,7 +56,8 @@ const Header = () => {
 
               <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="userDropdown">
                 <li><Link className="dropdown-item" to="/profile"><i className="bi bi-person me-2"></i>Perfil</Link></li>
-                <li><Link className="dropdown-item" to="/settings"><i className="bi bi-gear me-2"></i>Configuración</Link></li>
+                <li><Link className="dropdown-item" to="/codigo"><i className="bi bi-qr-code me-2"></i>Código</Link></li>
+                <li><Link className="dropdown-item" to="/terminos"><i className="bi bi-file-text me-2"></i>Términos</Link></li>
                 <li><hr className="dropdown-divider" /></li>
                 <li>
                   <button onClick={logout} className="dropdown-item text-danger">
