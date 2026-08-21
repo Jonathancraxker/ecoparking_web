@@ -58,11 +58,6 @@ const Sidebar = () => {
                                     <i className="bi bi-bar-chart-line me-2"></i> Estadísticas
                                 </Link>
                             </Nav.Item>
-                            <Nav.Item>
-                                <Link to="/reportes" className={`nav-link link-primary text-white`}>
-                                    <i className="bi bi-file-earmark-bar-graph me-2"></i> Reportes
-                                </Link>
-                            </Nav.Item>
                         </>
                     )}
 
@@ -86,6 +81,11 @@ const Sidebar = () => {
                             <Nav.Item>
                                 <Link to="/crud_cajones" className={`nav-link link-secondary text-white`}>
                                     <i className="bi bi-car-front me-2"></i> Gestión de Cajones
+                                </Link>
+                            </Nav.Item>
+                            <Nav.Item>
+                                <Link to="/reportes" className={`nav-link link-primary text-white`}>
+                                    <i className="bi bi-file-earmark-bar-graph me-2"></i> Reportes
                                 </Link>
                             </Nav.Item>
                             {/* <Nav.Item>
