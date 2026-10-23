@@ -1,33 +1,43 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import useAxiosPrivate from '../hooks/useAxiosPrivate.js'; 
-import { Modal, Button, Form, Table } from "react-bootstrap";
+import { Modal, Button, Form } from "react-bootstrap";
 import Swal from "sweetalert2";
 
 const initialFormData = {
     numero_cajon: "",
-    estado: "Disponible" 
+    estado: "Disponible",
+    zona: "Invitados",
+    id_usuario: "" // 🟢 Nuevo campo
 };
 
 function Crud_Cajones() {
     const [cajones, setCajones] = useState([]);
+    const [profesores, setProfesores] = useState([]); // 🟢 Estado para guardar profesores
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const axiosPrivate = useAxiosPrivate();
 
-    // --- Cargar todos los cajones ---
-    const fetchCajones = async (controller) => {
+    // --- Cargar todos los cajones y profesores ---
+    const fetchData = async (controller) => {
         setLoading(true);
         try {
-            const response = await axiosPrivate.get('/api/cajones', {
-                signal: controller.signal
-            });
-            setCajones(response.data);
+            // Peticiones en paralelo para optimizar tiempo
+            const [cajonesRes, usuariosRes] = await Promise.all([
+                axiosPrivate.get('/api/cajones', { signal: controller.signal }),
+                axiosPrivate.get('/usuarios', { signal: controller.signal }) // Asegúrate que esta ruta exista en tu backend
+            ]);
+            
+            setCajones(cajonesRes.data);
+            
+            // 🟢 Filtramos solo los usuarios que sean Profesores para el dropdown
+            const listaProfesores = usuariosRes.data.filter(u => u.tipo_usuario === 'Profesor');
+            setProfesores(listaProfesores);
+            
             setError(null);
         } catch (err) {
             if (err.name === 'CanceledError') return;
-            console.error("Error al obtener cajones:", err);
-            setError("Error al cargar los cajones.");
+            console.error("Error al obtener datos:", err);
+            setError("Error al cargar los datos.");
         } finally {
             setLoading(false);
         }
@@ -35,7 +45,7 @@ function Crud_Cajones() {
 
     useEffect(() => {
         const controller = new AbortController();
-        fetchCajones(controller);
+        fetchData(controller);
         return () => controller.abort();
     }, [axiosPrivate]);
 
@@ -48,7 +58,9 @@ function Crud_Cajones() {
         if (cajon) {
             setFormData({
                 numero_cajon: cajon.numero_cajon || "",
-                estado: cajon.estado || "Disponible"
+                estado: cajon.estado || "Disponible",
+                zona: cajon.zona || "Invitados",
+                id_usuario: cajon.id_usuario || ""
             });
         } else {
             setFormData(initialFormData);
@@ -57,21 +69,35 @@ function Crud_Cajones() {
     };
 
     const handleFormChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        
+        // 🟢 Si el usuario cambia la zona y no es "Profesores", limpiamos el id_usuario
+        if (name === 'zona' && value !== 'Profesores') {
+            setFormData({ ...formData, [name]: value, id_usuario: "" });
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Preparar payload enviando null si id_usuario está vacío
+        const payload = {
+            ...formData,
+            id_usuario: formData.id_usuario === "" ? null : formData.id_usuario
+        };
+
         try {
             if (currentCajon) {
-                await axiosPrivate.put(`/api/cajones/${currentCajon.id}`, formData);
+                await axiosPrivate.put(`/api/cajones/${currentCajon.id}`, payload);
                 Swal.fire("¡Éxito!", "Cajón actualizado correctamente.", "success");
             } else {
-                await axiosPrivate.post('/api/cajones', formData); 
+                await axiosPrivate.post('/api/cajones', payload); 
                 Swal.fire("¡Éxito!", "Cajón registrado correctamente.", "success");
             }
             setShowModal(false);
-            fetchCajones(new AbortController()); 
+            fetchData(new AbortController()); 
         } catch (err) {
             Swal.fire("Error", `Hubo un error al guardar el cajón: ${err.response?.data?.message || err.message}`, "error");
         }
@@ -89,7 +115,7 @@ function Crud_Cajones() {
             await axiosPrivate.delete(`/api/cajones/${currentCajon.id}`);
             Swal.fire("¡Eliminado!", "El cajón ha sido eliminado.", "success");
             setShowDeleteModal(false);
-            fetchCajones(new AbortController()); 
+            fetchData(new AbortController()); 
         } catch (err) {
             Swal.fire("Error", `Hubo un error al eliminar el cajón.`, "error");
         }
@@ -111,11 +137,13 @@ function Crud_Cajones() {
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
             <div className="table-responsive">
-                <table className="table table-striped table-hover shadow-sm">
+                <table className="table table-striped table-hover shadow-sm text-nowrap">
                     <thead className="table-dark">
                         <tr>
                             <th className="text-center" scope="col">ID</th>
                             <th className="text-center" scope="col">Número de Cajón</th>
+                            <th className="text-center" scope="col">Zona</th>
+                            <th className="text-center" scope="col">Asignado a</th>
                             <th className="text-center" scope="col">Estado</th>
                             <th className="text-center" scope="col">Acciones</th>
                         </tr>
@@ -125,6 +153,10 @@ function Crud_Cajones() {
                             <tr key={cajon.id}>
                                 <th className="text-center">{cajon.id}</th>
                                 <td className="text-center">{cajon.numero_cajon}</td>
+                                <td className="text-center">{cajon.zona}</td>
+                                <td className="text-center text-muted">
+                                    {cajon.correo_profesor ? cajon.correo_profesor : "N/A"}
+                                </td>
                                 <td className="text-center">
                                     <span className={`badge ${
                                         cajon.estado === 'Disponible' ? 'bg-success' : 
@@ -153,18 +185,58 @@ function Crud_Cajones() {
                 </Modal.Header>
                 <Form onSubmit={handleSubmit}>
                     <Modal.Body>
+                        <div className="row">
+                            <div className="col-md-6">
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Número de Cajón</Form.Label>
+                                    <Form.Control type="text" name="numero_cajon" value={formData.numero_cajon} onChange={handleFormChange} required placeholder="Ej. A-01" />
+                                </Form.Group>
+                            </div>
+                            <div className="col-md-6">
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Estado</Form.Label>
+                                    <Form.Select name="estado" value={formData.estado} onChange={handleFormChange}>
+                                        <option value="Disponible">Disponible</option>
+                                        <option value="Ocupado">Ocupado</option>
+                                        <option value="Mantenimiento">Mantenimiento</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </div>
+                        </div>
+
                         <Form.Group className="mb-3">
-                            <Form.Label>Número de Cajón</Form.Label>
-                            <Form.Control type="text" name="numero_cajon" value={formData.numero_cajon} onChange={handleFormChange} required placeholder="Ej. A-01" />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Estado</Form.Label>
-                            <Form.Select name="estado" value={formData.estado} onChange={handleFormChange}>
-                                <option value="Disponible">Disponible</option>
-                                <option value="Ocupado">Ocupado</option>
-                                <option value="Mantenimiento">Mantenimiento</option>
+                            <Form.Label>Zona</Form.Label>
+                            <Form.Select name="zona" value={formData.zona} onChange={handleFormChange}>
+                                <option value="Invitados">Invitados</option>
+                                <option value="Discapacitados">Discapacitados</option>
+                                <option value="Profesores">Profesores</option>
                             </Form.Select>
                         </Form.Group>
+
+                        {/* 🟢 Si la zona es Profesores, mostramos el selector de Profesor */}
+                        {formData.zona === "Profesores" && (
+                            <Form.Group className="mb-3">
+                                <Form.Label>Profesor Asignado</Form.Label>
+                                <Form.Select 
+                                    name="id_usuario" 
+                                    value={formData.id_usuario} 
+                                    onChange={handleFormChange}
+                                    required // Es obligatorio si la zona es profesores
+                                >
+                                    <option value="">-- Seleccione un Profesor --</option>
+                                    {profesores.map(profe => (
+                                        <option key={profe.id} value={profe.id}>
+                                            {profe.nombre} ({profe.correo})
+                                        </option>
+                                    ))}
+                                </Form.Select>
+                                {profesores.length === 0 && (
+                                    <Form.Text className="text-danger">
+                                        No hay profesores registrados en el sistema.
+                                    </Form.Text>
+                                )}
+                            </Form.Group>
+                        )}
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
