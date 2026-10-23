@@ -5,7 +5,6 @@ import { Modal, Button, Form, Table } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { QRCodeCanvas } from 'qrcode.react'; 
 
-// Estado inicial para el formulario de Cita (Crear/Editar)
 const initialCitaForm = {
     fecha_inicio: "",
     fecha_fin: "",
@@ -17,12 +16,12 @@ const initialCitaForm = {
     invitados: []
 };
 
-// Estado inicial para el formulario de Invitado
 const initialInvitadoForm = {
     nombre: "",
     correo: "",
     empresa: "",
     tipo_visitante: "",
+    tipo_acompanante: "Conductor",
     matricula: "",
     id_cajon: "",
     id_cita: null
@@ -36,32 +35,30 @@ function Mis_Citas() {
     
     const [todosLosCajones, setTodosLosCajones] = useState([]);
     
-    // --- Estados para los Modales ---
     const [showCitaModal, setShowCitaModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showInvitadoModal, setShowInvitadoModal] = useState(false);
     const [showQrModal, setShowQrModal] = useState(false); 
 
-    // --- Estados para los datos seleccionados ---
     const [currentCita, setCurrentCita] = useState(null); 
     const [formDataCita, setFormDataCita] = useState(initialCitaForm);
     const [invitadosList, setInvitadosList] = useState([]); 
     const [formDataInvitado, setFormDataInvitado] = useState(initialInvitadoForm);
     const [selectedQrUrl, setSelectedQrUrl] = useState(''); 
 
-    // --- Estado para saber qué invitado estamos editando ---
     const [currentInvitado, setCurrentInvitado] = useState(null);
 
-    // --- Estado local: controla si el formulario está en modo "acompañante" ---
     const [esAcompanante, setEsAcompanante] = useState(false);
+    
+    // 🟢 NUEVO ESTADO: Controla la zona seleccionada en el dropdown
+    const [selectedZona, setSelectedZona] = useState("Invitados");
+
     const [selectedConductorId, setSelectedConductorId] = useState("");
     const [cajonConductorLabel, setCajonConductorLabel] = useState("");
 
-    // --- Estados para los cajones disponibles ---
     const [cajonesDisponibles, setCajonesDisponibles] = useState([]);
     const [buscandoCajones, setBuscandoCajones] = useState(false);
 
-    // --- Cargar SÓLO MIS citas ---
     const fetchMisCitas = async () => {
         setLoading(true);
         try {
@@ -76,7 +73,6 @@ function Mis_Citas() {
         }
     };
 
-    // --- NUEVO: Cargar el catálogo completo de cajones para traducir IDs a Nombres ---
     const fetchTodosLosCajones = async () => {
         try {
             const response = await axiosPrivate.get('/api/cajones');
@@ -88,24 +84,21 @@ function Mis_Citas() {
 
     useEffect(() => {
         fetchMisCitas();
-        fetchTodosLosCajones(); // Lo llamamos al cargar el componente
+        fetchTodosLosCajones(); 
     }, [axiosPrivate]);
 
-    // --- Función Helper para traducir ID a Nombre de Cajón ---
     const getNombreCajon = (idCajon) => {
         if (!idCajon) return "—";
-        // Buscamos el cajón en el catálogo completo
         const cajonEncontrado = todosLosCajones.find(c => c.id === Number(idCajon));
-        return cajonEncontrado ? cajonEncontrado.numero_cajon : `Cajón #${idCajon}`;
+        return cajonEncontrado ? `${cajonEncontrado.numero_cajon} (${cajonEncontrado.zona || 'Invitados'})` : `Cajón #${idCajon}`;
     };
 
-    // --- Buscar cajones disponibles para la cita al abrir el modal de invitados ---
     const fetchCajonesParaCita = async (cita) => {
         setBuscandoCajones(true);
         try {
             const payload = {
                 fecha_inicio: cita.fecha_inicio,
-                fecha_fin: cita.fecha_fin,
+                fecha_fin: cita.fecha_fin || cita.fecha_inicio,
                 hora_inicio: cita.hora_inicio,
                 hora_fin: cita.hora_fin,
                 id_cita: cita.id
@@ -114,12 +107,12 @@ function Mis_Citas() {
             setCajonesDisponibles(response.data);
         } catch (error) {
             console.error("Error al buscar cajones disponibles:", error);
+            Swal.fire("Aviso", "No se pudieron cargar los cajones disponibles.", "warning");
         } finally {
             setBuscandoCajones(false);
         }
     };
 
-    // --- MANEJO DE MODAL DE CITA (CREAR/EDITAR) ---
     const handleShowCitaModal = (cita = null) => {
         setCurrentCita(cita); 
         if (cita) {
@@ -165,7 +158,6 @@ function Mis_Citas() {
         }
     };
 
-    // --- MANEJO DE MODAL DE BORRADO DE CITA ---
     const handleShowDeleteModal = (cita) => {
         setCurrentCita(cita);
         setShowDeleteModal(true);
@@ -182,7 +174,6 @@ function Mis_Citas() {
         }
     };
 
-    // --- MANEJO DE MODAL DE INVITADOS ---
     const handleShowInvitadoModal = async (cita) => {
         setCurrentCita(cita);
         setShowInvitadoModal(true);
@@ -191,6 +182,7 @@ function Mis_Citas() {
         setSelectedConductorId("");
         setCajonConductorLabel("");
         setEsAcompanante(false);
+        setSelectedZona("Invitados"); // Resetear zona
         await fetchInvitados(cita.id); 
         await fetchCajonesParaCita(cita);
     };
@@ -208,29 +200,48 @@ function Mis_Citas() {
         setFormDataInvitado({ ...formDataInvitado, [e.target.name]: e.target.value });
     };
 
-    // --- Preparar formulario para editar invitado ---
     const handleEditInvitado = (invitado) => {
         setCurrentInvitado(invitado); 
-        setSelectedConductorId("");
-        setCajonConductorLabel("");
-        setEsAcompanante(false); 
+        
+        const esAcomp = invitado.tipo_acompanante === 'Acompañante';
+        setEsAcompanante(esAcomp); 
+
+        if (invitado.id_cajon) {
+            const cajonDelInvitado = todosLosCajones.find(c => c.id === Number(invitado.id_cajon));
+            setSelectedZona(cajonDelInvitado?.zona || "Invitados");
+        } else {
+            setSelectedZona("Invitados");
+        }
+
+        if (esAcomp && invitado.id_cajon) {
+            const conductor = invitadosList.find(inv => inv.id_cajon === invitado.id_cajon && inv.tipo_acompanante === 'Conductor' && inv.id !== invitado.id);
+            if (conductor) {
+                setSelectedConductorId(String(conductor.id));
+                setCajonConductorLabel(getNombreCajon(conductor.id_cajon));
+            }
+        } else {
+            setSelectedConductorId("");
+            setCajonConductorLabel("");
+        }
+
         setFormDataInvitado({
             nombre: invitado.nombre,
             correo: invitado.correo,
             empresa: invitado.empresa || "",
             tipo_visitante: invitado.tipo_visitante || "",
+            tipo_acompanante: invitado.tipo_acompanante || "Conductor",
             matricula: invitado.matricula || "",
             id_cajon: invitado.id_cajon || "",
             id_cita: currentCita.id
         });
     };
 
-    // --- Cancelar edición de invitado ---
     const handleCancelEditInvitado = () => {
         setCurrentInvitado(null);
         setSelectedConductorId("");
         setCajonConductorLabel("");
         setEsAcompanante(false);
+        setSelectedZona("Invitados");
         setFormDataInvitado({ ...initialInvitadoForm, id_cita: currentCita.id });
     };
 
@@ -256,7 +267,6 @@ function Mis_Citas() {
             id_cajon: conductor ? (conductor.id_cajon || "") : ""
         });
         
-        // Usamos nuestro Helper para mostrar el nombre del cajón correctamente
         setCajonConductorLabel(
             conductor ? getNombreCajon(conductor.id_cajon) : ""
         );
@@ -266,6 +276,7 @@ function Mis_Citas() {
         e.preventDefault();
         const payloadInvitado = {
             ...formDataInvitado,
+            tipo_acompanante: esAcompanante ? 'Acompañante' : 'Conductor',
             id_cajon: formDataInvitado.id_cajon ? Number(formDataInvitado.id_cajon) : null
         };
         try {
@@ -285,6 +296,7 @@ function Mis_Citas() {
             setCurrentInvitado(null); 
             setSelectedConductorId("");
             setEsAcompanante(false);
+            setSelectedZona("Invitados");
             fetchInvitados(currentCita.id); 
             fetchMisCitas(); 
             fetchCajonesParaCita(currentCita); 
@@ -323,7 +335,6 @@ function Mis_Citas() {
         }
     };
     
-    // --- MANEJO DE QR ---
     const handleShowQrModal = (cita) => {
         if (cita.url_validacion) {
             setSelectedQrUrl(cita.url_validacion);
@@ -333,9 +344,15 @@ function Mis_Citas() {
         }
     };
 
-    const cajonesFiltrados = cajonesDisponibles.filter(c =>
-        !invitadosList.some(inv => inv.id_cajon === c.id && inv.id !== currentInvitado?.id)
-    );
+    const cajonesParaMostrar = cajonesDisponibles.filter(c => {
+        const zonaCajon = c.zona || 'Invitados';
+        if (zonaCajon === 'Profesores') return false; 
+        return !invitadosList.some(inv => inv.id_cajon === c.id && inv.id !== currentInvitado?.id);
+    });
+
+    // Extraer zonas únicas del catálogo, asignando 'Invitados' si viene vacío, y ocultando 'Profesores'
+    const zonasUnicas = [...new Set(todosLosCajones.map(c => c.zona || 'Invitados'))]
+        .filter(zona => zona !== 'Profesores');
 
     if (loading) return <div className="container p-4">Cargando mis citas...</div>;
 
@@ -375,6 +392,7 @@ function Mis_Citas() {
                                 <td className="text-center">
                                     <span className={`badge ${
                                         cita.estado_cita === 'Confirmada' ? 'bg-success' :
+                                        cita.estado_cita === 'Finalizada' ? 'bg-secondary' :
                                         cita.estado_cita === 'Pendiente' ? 'bg-warning text-dark' :
                                         'bg-danger'
                                     }`}>
@@ -389,13 +407,13 @@ function Mis_Citas() {
                                             title="Ver Código QR"
                                             disabled={!cita.url_validacion}
                                         >
-                                            <i className="bi bi-qr-code m-1"></i>
-                                            QR
+                                            <i className="bi bi-qr-code m-1"></i> QR
                                         </button>
                                         <button onClick={() => handleShowCitaModal(cita)} className="btn btn-warning btn-sm" title="Editar Cita">
                                             <i className="bi bi-pencil-fill"></i> Edit
                                         </button>
-                                        <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm" title="Gestionar Invitados">
+                                        <button onClick={() => handleShowInvitadoModal(cita)} className="btn btn-info btn-sm" disabled={cita.estado_cita === 'Finalizada'} // 🟢 Inhabilita el botón si está finalizada
+                                        title={cita.estado_cita === 'Finalizada' ? 'La cita ya finalizó' : 'Gestionar invitados'}>
                                             <i className="bi bi-people-fill m-1"></i> Inv
                                         </button>
                                         <button onClick={() => handleShowDeleteModal(cita)} className="btn btn-danger btn-sm" title="Eliminar Cita">
@@ -413,7 +431,7 @@ function Mis_Citas() {
                 Volver al Perfil
             </Link>
 
-            {/* --- MODAL PARA CREAR/EDITAR CITA --- */}
+            {/* MODAL PARA CREAR/EDITAR CITA */}
             <Modal show={showCitaModal} onHide={() => setShowCitaModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>
@@ -439,6 +457,7 @@ function Mis_Citas() {
                             <Form.Label>Estado</Form.Label>
                             <Form.Select name="estado_cita" value={formDataCita.estado_cita} onChange={handleCitaFormChange}>
                                 <option value="Confirmada">Confirmada</option>
+                                <option value="Finalizada">Finalizada</option>
                                 <option value="Cancelada">Cancelada</option>
                             </Form.Select>
                         </Form.Group>
@@ -452,7 +471,7 @@ function Mis_Citas() {
                 </Form>
             </Modal>
 
-            {/* --- MODAL DE CONFIRMACIÓN DE BORRADO (CITA) --- */}
+            {/* MODAL DE CONFIRMACIÓN DE BORRADO (CITA) */}
             <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>Confirmar Eliminación</Modal.Title>
@@ -464,7 +483,7 @@ function Mis_Citas() {
                 </Modal.Footer>
             </Modal>
 
-            {/* --- MODAL PARA GESTIONAR INVITADOS (CON MODO ACOMPAÑANTE) --- */}
+            {/* MODAL PARA GESTIONAR INVITADOS */}
             <Modal show={showInvitadoModal} onHide={() => setShowInvitadoModal(false)} size="lg">
                 <Modal.Header closeButton>
                     <Modal.Title>Invitados de la Cita: {currentCita?.motivo}</Modal.Title>
@@ -479,8 +498,7 @@ function Mis_Citas() {
                             <div className="col-md-6"><Form.Control name="empresa" placeholder="Empresa" onChange={handleInvitadoFormChange} value={formDataInvitado.empresa} /></div>
                             <div className="col-md-6"><Form.Control name="tipo_visitante" placeholder="Tipo (ej. Proveedor)" onChange={handleInvitadoFormChange} value={formDataInvitado.tipo_visitante} required /></div>
 
-                            {/* --- Checkbox: ¿Es acompañante? --- */}
-                            <div className="col-12">
+                            <div className="col-12 mt-2 mb-2">
                                 <Form.Check
                                     type="checkbox"
                                     id="es_acompanante"
@@ -490,35 +508,67 @@ function Mis_Citas() {
                                 />
                             </div>
 
-                            {/* --- CASO NORMAL / CONDUCTOR: escribe su matrícula y elige un cajón disponible --- */}
+                            {/* --- CASO CONDUCTOR (No es acompañante) --- */}
                             {!esAcompanante && (
                                 <>
-                                    <div className="col-md-6">
+                                    {/* 🟢 NUEVO: Dropdown para elegir la Zona */}
+                                    <div className="col-md-4">
+                                        <Form.Label className="small text-muted mb-1">Zona de Estacionamiento</Form.Label>
+                                        <Form.Select 
+                                            value={selectedZona} 
+                                            onChange={(e) => {
+                                                setSelectedZona(e.target.value);
+                                                // Al cambiar de zona, limpiamos el cajón seleccionado para que no guarde uno erróneo
+                                                setFormDataInvitado(prev => ({ ...prev, id_cajon: "" }));
+                                            }}
+                                        >
+                                            {/* Iterar las zonas dinámicamente desde la BD */}
+                                            {zonasUnicas.map(zona => (
+                                                <option key={zona} value={zona}>
+                                                    {zona}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </div>
+
+                                    {/* 🟢 NUEVO: Matrícula Obligatoria */}
+                                    <div className="col-md-4">
+                                        <Form.Label className="small text-muted mb-1">Matrícula (Requerido)</Form.Label>
                                         <Form.Control
                                             name="matricula"
-                                            placeholder="Matrícula del Vehículo"
+                                            placeholder="Ej. ABC-1234"
                                             minLength={7}
                                             maxLength={9}   
                                             onChange={handleInvitadoFormChange}
                                             value={formDataInvitado.matricula}
+                                            required 
                                         />
                                     </div>
-                                    <div className="col-md-6">
+
+                                    {/* 🟢 NUEVO: Cajón Obligatorio y Filtrado por Zona (Quitamos 'llegó a pie') */}
+                                    <div className="col-md-4">
+                                        <Form.Label className="small text-muted mb-1">Asignar Cajón</Form.Label>
                                         <Form.Select
                                             name="id_cajon"
                                             value={formDataInvitado.id_cajon}
                                             onChange={handleInvitadoFormChange}
                                             disabled={buscandoCajones}
+                                            required
                                         >
                                             <option value="">
-                                                {buscandoCajones ? "Buscando cajones..." : "Sin cajón (llegó a pie)"}
+                                                {buscandoCajones ? "Buscando..." : "Seleccione un cajón..."}
                                             </option>
-                                            {cajonesFiltrados.map(cajon => (
-                                                <option key={cajon.id} value={cajon.id}>
-                                                    {cajon.numero_cajon}
-                                                </option>
-                                            ))}
-                                            {currentInvitado?.id_cajon && !cajonesFiltrados.some(c => c.id === currentInvitado.id_cajon) && (
+                                            
+                                            {cajonesParaMostrar
+                                                .filter(c => (c.zona || 'Invitados') === selectedZona)
+                                                .map(cajon => (
+                                                    <option key={cajon.id} value={cajon.id}>
+                                                        Cajón {cajon.numero_cajon}
+                                                    </option>
+                                                ))
+                                            }
+
+                                            {currentInvitado?.id_cajon && !cajonesParaMostrar.some(c => c.id === currentInvitado.id_cajon) && (
                                                 <option value={currentInvitado.id_cajon}>
                                                     {getNombreCajon(currentInvitado.id_cajon)} (actual)
                                                 </option>
@@ -528,40 +578,41 @@ function Mis_Citas() {
                                 </>
                             )}
 
-                            {/* --- CASO ACOMPAÑANTE: elige de la lista de invitados con vehículo ya registrado en esta cita --- */}
+                            {/* --- CASO ACOMPAÑANTE --- */}
                             {esAcompanante && (
                                 <>
                                     <div className="col-md-12">
+                                        {/* 🟢 NUEVO: Filtra SOLO los que tienen tipo_acompanante === 'Conductor' */}
                                         <Form.Select
                                             value={selectedConductorId}
                                             onChange={handleSeleccionarConductor}
                                             required
                                         >
-                                            <option value="">Selecciona al conductor que acompaña...</option>
+                                            <option value="">Selecciona al conductor principal...</option>
                                             {invitadosList
-                                                .filter(inv => inv.matricula && inv.id !== currentInvitado?.id)
+                                                .filter(inv => inv.tipo_acompanante === 'Conductor' && inv.id !== currentInvitado?.id)
                                                 .map(conductor => (
                                                     <option key={conductor.id} value={conductor.id}>
-                                                        {conductor.nombre} — {conductor.matricula}
+                                                        {conductor.nombre} — Auto: {conductor.matricula}
                                                     </option>
                                                 ))}
                                         </Form.Select>
-                                        {invitadosList.filter(inv => inv.matricula).length === 0 && (
+                                        {invitadosList.filter(inv => inv.tipo_acompanante === 'Conductor').length === 0 && (
                                             <Form.Text className="text-danger">
-                                                Todavía no hay ningún invitado con vehículo registrado en esta cita. Agrega primero al conductor.
+                                                No hay conductores registrados. Registre al conductor primero.
                                             </Form.Text>
                                         )}
                                     </div>
                                     <div className="col-md-6">
-                                        <Form.Label className="small text-muted mb-1">Matrícula (copiada del conductor)</Form.Label>
+                                        <Form.Label className="small text-muted mb-1">Matrícula (del conductor)</Form.Label>
                                         <Form.Control value={formDataInvitado.matricula} disabled readOnly />
                                     </div>
                                     <div className="col-md-6">
-                                        <Form.Label className="small text-muted mb-1">Cajón (copiado del conductor)</Form.Label>
+                                        <Form.Label className="small text-muted mb-1">Cajón (del conductor)</Form.Label>
                                         <Form.Control
                                             value={
                                                 cajonesDisponibles.find(c => c.id === formDataInvitado.id_cajon)?.numero_cajon
-                                                || (formDataInvitado.id_cajon ? getNombreCajon(formDataInvitado.id_cajon) : "Sin cajón")
+                                                || (formDataInvitado.id_cajon ? getNombreCajon(formDataInvitado.id_cajon) : "Sin asignar")
                                             }
                                             disabled
                                             readOnly
@@ -570,12 +621,11 @@ function Mis_Citas() {
                                 </>
                             )}
                         </div>
-                        <div className="mt-2 d-flex gap-2">
+                        <div className="mt-3 d-flex gap-2">
                             <Button type="submit" variant={currentInvitado ? "warning" : "primary"}>
                                 {currentInvitado ? "Actualizar Invitado" : "Agregar Invitado"}
                             </Button>
                             
-                            {/* Botón Cancelar solo si estamos editando */}
                             {currentInvitado && (
                                 <Button variant="secondary" onClick={handleCancelEditInvitado}>
                                     Cancelar Edición
@@ -587,67 +637,53 @@ function Mis_Citas() {
                     <hr />
                     
                     <h5>Invitados Actuales ({invitadosList.length})</h5>
-                    <Table striped bordered hover size="sm">
-                        <thead><tr><th>Nombre</th><th>Correo</th><th>Empresa</th><th>Visitante</th><th>Matrícula</th><th>Cajón</th><th>Acciones</th></tr></thead>
-                        <tbody>
-                            {invitadosList.map(inv => (
-                                <tr key={inv.id}>
-                                    <td>{inv.nombre}</td>
-                                    <td>{inv.correo}</td>
-                                    <td>{inv.empresa}</td>
-                                    <td>{inv.tipo_visitante}</td>
-                                    <td>{inv.matricula || "No especificada"}</td>
-                                    
-                                    {/* AQUI APLICAMOS LA FUNCIÓN PARA MOSTRAR EL NOMBRE DEL CAJÓN */}
-                                    <td className="text-center">{inv.numero_cajon || getNombreCajon(inv.id_cajon)}</td>
-                                    
-                                    <td className="text-center">
-                                        {/* Botón EDITAR */}
-                                        <Button 
-                                            variant="warning" 
-                                            size="sm" 
-                                            className="me-2"
-                                            onClick={() => handleEditInvitado(inv)}
-                                        >
-                                            <i className="bi bi-pencil-fill"></i>
-                                        </Button>
-                                        {/* Botón ELIMINAR */}
-                                        <Button 
-                                            variant="danger" 
-                                            size="sm" 
-                                            onClick={() => handleDeleteInvitado(inv.id)}
-                                        >
-                                            <i className="bi bi-trash-fill"></i>
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </Table>
+                    <div className="table-responsive">
+                        <Table striped bordered hover size="sm" className="text-nowrap">
+                            <thead><tr><th>Nombre</th><th>Correo</th><th>Visitante</th><th>Tipo</th><th>Matrícula</th><th>Cajón</th><th>Acciones</th></tr></thead>
+                            <tbody>
+                                {invitadosList.map(inv => (
+                                    <tr key={inv.id}>
+                                        <td>{inv.nombre}</td>
+                                        <td>{inv.correo}</td>
+                                        <td>{inv.tipo_visitante}</td>
+                                        <td>
+                                            <span className={`badge ${inv.tipo_acompanante === 'Conductor' ? 'bg-primary' : 'bg-secondary'}`}>
+                                                {inv.tipo_acompanante}
+                                            </span>
+                                        </td>
+                                        <td className="text-center">{inv.matricula || "—"}</td>
+                                        <td className="text-center">{inv.numero_cajon || getNombreCajon(inv.id_cajon)}</td>
+                                        
+                                        <td className="text-center">
+                                            <Button variant="warning" size="sm" className="me-2" onClick={() => handleEditInvitado(inv)}>
+                                                <i className="bi bi-pencil-fill"></i>
+                                            </Button>
+                                            <Button variant="danger" size="sm" onClick={() => handleDeleteInvitado(inv.id)}>
+                                                <i className="bi bi-trash-fill"></i>
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </Table>
+                    </div>
                 </Modal.Body>
             </Modal>
 
-            {/* --- MODAL PARA EL QR --- */}
+            {/* MODAL PARA EL QR */}
             <Modal show={showQrModal} onHide={() => setShowQrModal(false)} centered>
                 <Modal.Header closeButton>
                     <Modal.Title>Código QR de la Cita</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="text-center">
-                    <QRCodeCanvas 
-                        value={selectedQrUrl} 
-                        size={256} 
-                        includeMargin={true} 
-                    />
+                    <QRCodeCanvas value={selectedQrUrl} size={256} includeMargin={true} />
                     <p className="mt-2 small text-muted">{selectedQrUrl}</p>
                 </Modal.Body>
                 <Modal.Footer>
                     <h3 className="text-center w-100 text-bold">Escanéame</h3>
-                    <Button variant="secondary" onClick={() => setShowQrModal(false)}>
-                        Cerrar
-                    </Button>
+                    <Button variant="secondary" onClick={() => setShowQrModal(false)}>Cerrar</Button>
                 </Modal.Footer>
             </Modal>
-
         </div>
     );
 }
