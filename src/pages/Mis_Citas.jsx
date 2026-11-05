@@ -345,16 +345,16 @@ function Mis_Citas() {
     };
 
     const cajonesParaMostrar = cajonesDisponibles.filter(c => {
-        const zonaCajon = c.zona || 'Invitados';
-        if (zonaCajon === 'Profesores') return false; 
+        if (c.id_usuario) return false; 
+        
         return !invitadosList.some(inv => inv.id_cajon === c.id && inv.id !== currentInvitado?.id);
     });
 
-    // Extraer zonas únicas del catálogo, asignando 'Invitados' si viene vacío, y ocultando 'Profesores'
-    const zonasUnicas = [...new Set(todosLosCajones.map(c => c.zona || 'Invitados'))]
-        .filter(zona => zona !== 'Profesores');
-
-    if (loading) return <div className="container p-4">Cargando mis citas...</div>;
+    const zonasUnicas = [...new Set(
+        todosLosCajones
+            .filter(c => !c.id_usuario)
+            .map(c => c.zona || 'Invitados')
+    )];
 
     return (
         <div className="container-fluid p-4">

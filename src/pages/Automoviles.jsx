@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import mapaUteq from '../assets/images/mapa-uteq-2.png';
 import { getTodosCajones } from '../api/cajones';
+import MapaAcceso from '../components/MapaAcceso';
 
 export default function Automoviles() {
   const [zonaSeleccionada, setZonaSeleccionada] = useState(null);
   const [cajones, setCajones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [vista, setVista] = useState('general');
 
   // Rutas por zona (desde entrada principal)
   const getRutaByZona = (zona) => {
@@ -38,9 +40,12 @@ export default function Automoviles() {
     }
   };
 
+  // Cajones del mapa general (sin los de los accesos A1-, A2-, A3-)
+  const cajonesGenerales = cajones.filter(c => !/^A[123]-/.test(c.numero_cajon));
+
   // Contar cajones por zona y estado
   const getZonaStats = (zona) => {
-    const cajonesZona = cajones.filter(c => c.numero_cajon.startsWith(zona));
+    const cajonesZona = cajonesGenerales.filter(c => c.numero_cajon.startsWith(zona));
     return {
       total: cajonesZona.length,
       disponibles: cajonesZona.filter(c => c.estado === 'Disponible').length,
@@ -49,35 +54,31 @@ export default function Automoviles() {
     };
   };
 
-  // Cambiar handleZonaClick por handleCajonClick
   const handleCajonClick = (cajon) => {
-    // Obtener la zona del cajón (primera letra del número)
     const zona = cajon.numero_cajon.charAt(0);
-    
-    // Verificar el estado del cajón con SweetAlert2
+
     if (cajon.estado === 'Ocupado') {
       Swal.fire({
         icon: 'error',
         title: 'Cajón Ocupado',
         text: 'El estacionamiento actualmente se encuentra ocupado.',
-        confirmButtonColor: '#e74c3c', // Rojo como en tu getEstadoColor
+        confirmButtonColor: '#e74c3c',
         confirmButtonText: 'Entendido'
       });
       return;
     }
-    
+
     if (cajon.estado === 'Mantenimiento') {
       Swal.fire({
         icon: 'warning',
         title: 'En Mantenimiento',
         text: 'Lo sentimos, por el momento este cajón se encuentra en mantenimiento.',
-        confirmButtonColor: '#f1c40f', // Amarillo como en tu getEstadoColor
+        confirmButtonColor: '#f1c40f',
         confirmButtonText: 'Entendido'
       });
       return;
     }
-    
-    // Si está disponible, mostrar la ruta de su zona
+
     setZonaSeleccionada(zona);
   };
 
@@ -85,7 +86,6 @@ export default function Automoviles() {
     setZonaSeleccionada(null);
   };
 
-  // Definir zonas disponibles
   const zonas = ['A', 'B', 'C', 'D'];
 
   useEffect(() => {
@@ -124,6 +124,16 @@ export default function Automoviles() {
     );
   }
 
+  const estiloVista = (activa) => ({
+    padding: '10px',
+    borderRadius: '8px',
+    border: activa ? '2px solid #4285F4' : '1px solid #ddd',
+    backgroundColor: activa ? '#eef6ff' : '#fff',
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    cursor: 'pointer',
+  });
+
   return (
     <div style={{ padding: '20px', backgroundColor: '#fdfdfd', minHeight: '100vh', fontFamily: 'sans-serif' }}>
       <header style={{ marginBottom: '20px' }}>
@@ -134,57 +144,77 @@ export default function Automoviles() {
       </header>
 
       <div style={{ display: 'flex', gap: '20px' }}>
-        {/* Panel izquierdo: Mapa */}
-        <div style={{ 
-          flex: '2', 
-          backgroundColor: '#f0f0f0', 
-          borderRadius: '15px', 
-          position: 'relative',
-          height: '550px',
-          overflow: 'hidden',
-          border: '1px solid #ddd',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-        }}>
-          <img 
-            src={mapaUteq} 
-            alt="Mapa UTEQ" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', opacity: 0.9 }} 
-          />
-          <svg viewBox="0 0 800 600" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
-            {zonaSeleccionada && (
-              <path 
-                d={getRutaByZona(zonaSeleccionada)} 
-                fill="none" 
-                stroke="#4285F4" 
-                strokeWidth="6" 
-                strokeLinecap="round"
-                strokeDasharray="15, 10"
-                className="ruta-animada"
-              />
-            )}
-          </svg>
-          <div style={{ position: 'absolute', bottom: '510px', left: '10%', zIndex: 20, backgroundColor: '#1a3a3a', color: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>
-            ENTRADA PRINCIPAL
+        {/* Panel izquierdo: Mapa general o Acceso */}
+        {vista !== 'general' ? (
+          <div style={{
+            flex: '2',
+            backgroundColor: '#fff',
+            borderRadius: '15px',
+            padding: '15px',
+            border: '1px solid #ddd',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            overflow: 'auto',
+            maxHeight: '80vh'
+          }}>
+            <MapaAcceso acceso={vista} />
           </div>
-        </div>
+        ) : (
+          <div style={{
+            flex: '2',
+            backgroundColor: '#f0f0f0',
+            borderRadius: '15px',
+            position: 'relative',
+            height: '550px',
+            overflow: 'hidden',
+            border: '1px solid #ddd',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <img
+              src={mapaUteq}
+              alt="Mapa UTEQ"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', opacity: 0.9 }}
+            />
+            <svg viewBox="0 0 800 600" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
+              {zonaSeleccionada && (
+                <path
+                  d={getRutaByZona(zonaSeleccionada)}
+                  fill="none"
+                  stroke="#4285F4"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray="15, 10"
+                  className="ruta-animada"
+                />
+              )}
+            </svg>
+            <div style={{ position: 'absolute', bottom: '510px', left: '10%', zIndex: 20, backgroundColor: '#1a3a3a', color: 'white', padding: '5px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>
+              ENTRADA PRINCIPAL
+            </div>
+          </div>
+        )}
 
-        {/* Panel derecho: Zonas (estilo como estaban los cajones) */}
+        {/* Panel derecho: Zonas */}
         <div style={{ flex: '0.8', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <h2 style={{ fontSize: '18px', color: '#34495e', marginBottom: '5px' }}>Zonas de Estacionamiento</h2>
-          
+
+          <button style={estiloVista(vista === 'general')} onClick={() => setVista('general')}>General</button>
+          <button style={estiloVista(vista === 1)} onClick={() => setVista(1)}>Acceso 1</button>
+          <button style={estiloVista(vista === 2)} onClick={() => setVista(2)}>Acceso 2</button>
+          <button style={estiloVista(vista === 3)} onClick={() => setVista(3)}>Acceso 3</button>
+
           {zonas.map(zona => {
             const stats = getZonaStats(zona);
             const estaSeleccionada = zonaSeleccionada === zona;
-            
+
             return (
-              <div 
+              <div
                 key={zona}
                 style={{
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
+                  display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '15px', 
-                  borderRadius: '12px', 
+                  padding: '15px',
+                  borderRadius: '12px',
                   cursor: 'pointer',
                   backgroundColor: estaSeleccionada ? '#eef6ff' : '#fff',
                   border: estaSeleccionada ? '2px solid #4285F4' : '1px solid #eee',
@@ -202,8 +232,8 @@ export default function Automoviles() {
                     {stats.disponibles} disponibles · {stats.ocupados} ocupados
                   </div>
                 </div>
-                <div style={{ 
-                  display: 'flex', 
+                <div style={{
+                  display: 'flex',
                   gap: '4px',
                   backgroundColor: '#f8f9fa',
                   padding: '4px 8px',
@@ -215,18 +245,18 @@ export default function Automoviles() {
               </div>
             );
           })}
-          
+
           {zonaSeleccionada && (
-            <button 
+            <button
               onClick={limpiarRuta}
-              style={{ 
-                marginTop: '10px', 
-                padding: '12px', 
-                backgroundColor: '#f8f9fa', 
-                border: '1px solid #ddd', 
-                borderRadius: '8px', 
-                cursor: 'pointer', 
-                fontWeight: 'bold', 
+              style={{
+                marginTop: '10px',
+                padding: '12px',
+                backgroundColor: '#f8f9fa',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
                 color: '#666'
               }}
             >
@@ -239,20 +269,16 @@ export default function Automoviles() {
       {/* Cajones por zona (estilo cine) */}
       <div style={{ marginTop: '32px' }}>
         <h2 style={{ fontSize: '18px', color: '#34495e', marginBottom: '20px' }}>Distribución de Cajones</h2>
-        
+
         {zonas.filter(z => getZonaStats(z).total > 0).map(zona => {
-          const cajonesZona = cajones.filter(c => c.numero_cajon.startsWith(zona));
-          
+          const cajonesZona = cajonesGenerales.filter(c => c.numero_cajon.startsWith(zona));
+
           return (
             <div key={zona} style={{ marginBottom: '28px' }}>
               <h3 style={{ fontSize: '16px', color: '#2c3e50', marginBottom: '12px', paddingLeft: '4px', borderLeft: `3px solid #4285F4` }}>
                 Zona {zona}
               </h3>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 {cajonesZona.map(cajon => (
                   <div
                     key={cajon.id}
@@ -293,14 +319,14 @@ export default function Automoviles() {
       </div>
 
       {/* Google Maps iframe */}
-      <div style={{ 
+      <div style={{
         marginTop: '32px',
-        borderRadius: '12px', 
+        borderRadius: '12px',
         overflow: 'hidden',
         border: '1px solid #e9ecef',
         boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
       }}>
-        <iframe 
+        <iframe
           title="Ubicación UTEQ"
           src="https://maps.google.com/maps?q=Universidad+Tecnológica+de+Querétaro&t=&z=15&ie=UTF8&iwloc=&output=embed"
           width="100%"
@@ -313,9 +339,9 @@ export default function Automoviles() {
         <div style={{ padding: '12px', backgroundColor: '#f8f9fa', borderTop: '1px solid #e9ecef' }}>
           <div style={{ fontWeight: '500', color: '#212529', fontSize: '14px' }}>Universidad Tecnológica de Querétaro</div>
           <div style={{ fontSize: '12px', color: '#6c757d' }}>Av. Pie de la Cuesta No. 2501, Col. Unidad Nacional, 76148 Santiago de Querétaro, Qro.</div>
-          <a 
-            href="https://maps.google.com/?q=Universidad+Tecnológica+de+Querétaro" 
-            target="_blank" 
+          <a
+            href="https://maps.google.com/?q=Universidad+Tecnológica+de+Querétaro"
+            target="_blank"
             rel="noopener noreferrer"
             style={{ fontSize: '12px', color: '#4285F4', textDecoration: 'none', marginTop: '8px', display: 'inline-block' }}
           >
