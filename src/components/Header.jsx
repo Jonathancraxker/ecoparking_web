@@ -12,7 +12,7 @@ const Header = ({ toggleSidebar }) => {
         {/* Lado izquierdo: Botón del Sidebar + Logo EcoParking */}
         <div className="d-flex align-items-center">
           <button
-            className="btn btn-outline-light btn-sm me-2 me-md-3"
+            className="btn btn-dark border-0 shadow-none btn-sm me-2 me-md-3"
             type="button"
             onClick={toggleSidebar}
             aria-label="Mostrar u ocultar menú"
